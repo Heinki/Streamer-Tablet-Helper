@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="grid_columns">4</integer>
+    <dimen name="btn_icon_size">26sp</dimen>
+    <dimen name="btn_label_size">11sp</dimen>
+    <dimen name="btn_hint_size">8sp</dimen>
+    <dimen name="btn_pad_v">20dp</dimen>
+    <dimen name="btn_pad_h">10dp</dimen>
+    <dimen name="btn_margin">5dp</dimen>
+    <dimen name="topbar_height">46dp</dimen>
+    <dimen name="topbar_title_size">13sp</dimen>
+    <dimen name="tab_height">40dp</dimen>
+    <dimen name="tab_text_size">13sp</dimen>
+</resources>

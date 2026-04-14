@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="Streamer Tablet Helper"
+        android:description="Control your PC while streaming"
+        android:theme="@style/AppTheme"
+        android:supportsRtl="false"
+        android:hardwareAccelerated="true">
+
+        <!-- SetupActivity: allow all orientations -->
+        <activity
+            android:name=".SetupActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- DeckActivity: allow all orientations, handle config changes ourselves
+             so we can re-layout the grid without recreating the full activity -->
+        <activity
+            android:name=".DeckActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".EditButtonActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout"
+            android:windowSoftInputMode="adjustResize" />
+
+    </application>
+</manifest>
