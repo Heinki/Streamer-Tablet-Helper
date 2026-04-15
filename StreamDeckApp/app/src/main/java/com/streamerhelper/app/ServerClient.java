@@ -183,6 +183,22 @@ public class ServerClient {
         return conn;
     }
 
+
+    public void sendTwitch(String command, String description, Callback cb) {
+        executor.submit(() -> {
+            try {
+                JSONObject body = new JSONObject();
+                body.put("action",  "twitch");
+                body.put("command", command);
+                if (description != null && !description.isEmpty())
+                    body.put("description", description);
+                postJson(body.toString(), cb);
+            } catch (Exception e) {
+                deliver(cb, false, e.getMessage());
+            }
+        });
+    }
+
     private void postJson(String json, Callback cb) {
         try {
             HttpURLConnection conn = open("POST", "/");

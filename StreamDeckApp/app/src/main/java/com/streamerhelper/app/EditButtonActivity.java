@@ -14,9 +14,9 @@ public class EditButtonActivity extends AppCompatActivity {
 
     private EditText    fIcon, fLabel;
     private RadioGroup  fTypeGroup;
-    private RadioButton fTypeKeys, fTypeSound, fTypeObs;
-    private LinearLayout keysFields, soundFields, obsFields;
-    private EditText    fKeys, fSound, fObsScene, fObsSource;
+    private RadioButton fTypeKeys, fTypeSound, fTypeObs, fTypeTwitch;
+    private LinearLayout keysFields, soundFields, obsFields, twitchFields;
+    private EditText    fKeys, fSound, fObsScene, fObsSource, fTwitchDesc;
     private Spinner     fObsCommand;
     private LinearLayout colorRow;
     private CheckBox    fConfirmTap, fHaptic;
@@ -27,17 +27,12 @@ public class EditButtonActivity extends AppCompatActivity {
     private static final String[] COLORS = {
         "#00e5ff","#ff3c6e","#aaff00","#ff9f00",
         "#bf7af0","#ff6b35","#00ff99","#e879f9",
-        "#38bdf8","#fbbf24"
+        "#38bdf8","#fbbf24","#9146ff","#ffffff"
     };
 
     private static final String[] OBS_COMMANDS = {
-        "SetCurrentProgramScene",
-        "StartStream",
-        "StopStream",
-        "StartRecord",
-        "StopRecord",
-        "ToggleMute",
-        "SetVolume"
+        "SetCurrentProgramScene","StartStream","StopStream",
+        "StartRecord","StopRecord","ToggleMute","SetVolume"
     };
 
     @Override
@@ -51,41 +46,37 @@ public class EditButtonActivity extends AppCompatActivity {
         btnIdx  = getIntent().getIntExtra("btnIdx", -1);
         isNew   = (btnIdx == -1);
 
-        fIcon       = findViewById(R.id.f_icon);
-        fLabel      = findViewById(R.id.f_label);
-        fKeys       = findViewById(R.id.f_keys);
-        fSound      = findViewById(R.id.f_sound);
-        fTypeGroup  = findViewById(R.id.f_type_group);
-        fTypeKeys   = findViewById(R.id.f_type_keys);
-        fTypeSound  = findViewById(R.id.f_type_sound);
-        fTypeObs    = findViewById(R.id.f_type_obs);
-        keysFields  = findViewById(R.id.keys_fields);
-        soundFields = findViewById(R.id.sound_fields);
-        obsFields   = findViewById(R.id.obs_fields);
-        fObsCommand = findViewById(R.id.f_obs_command);
-        fObsScene   = findViewById(R.id.f_obs_scene);
-        fObsSource  = findViewById(R.id.f_obs_source);
-        colorRow    = findViewById(R.id.color_row);
-        fConfirmTap = findViewById(R.id.f_confirm_tap);
-        fHaptic     = findViewById(R.id.f_haptic);
-        fWidthGroup = findViewById(R.id.f_width_group);
-        fWidth1     = findViewById(R.id.f_width_1);
-        fWidth2     = findViewById(R.id.f_width_2);
+        fIcon         = findViewById(R.id.f_icon);
+        fLabel        = findViewById(R.id.f_label);
+        fKeys         = findViewById(R.id.f_keys);
+        fSound        = findViewById(R.id.f_sound);
+        fTypeGroup    = findViewById(R.id.f_type_group);
+        fTypeKeys     = findViewById(R.id.f_type_keys);
+        fTypeSound    = findViewById(R.id.f_type_sound);
+        fTypeObs      = findViewById(R.id.f_type_obs);
+        fTypeTwitch   = findViewById(R.id.f_type_twitch);
+        keysFields    = findViewById(R.id.keys_fields);
+        soundFields   = findViewById(R.id.sound_fields);
+        obsFields     = findViewById(R.id.obs_fields);
+        twitchFields  = findViewById(R.id.twitch_fields);
+        fObsCommand   = findViewById(R.id.f_obs_command);
+        fObsScene     = findViewById(R.id.f_obs_scene);
+        fObsSource    = findViewById(R.id.f_obs_source);
+        fTwitchDesc   = findViewById(R.id.f_twitch_desc);
+        colorRow      = findViewById(R.id.color_row);
+        fConfirmTap   = findViewById(R.id.f_confirm_tap);
+        fHaptic       = findViewById(R.id.f_haptic);
+        fWidthGroup   = findViewById(R.id.f_width_group);
+        fWidth1       = findViewById(R.id.f_width_1);
+        fWidth2       = findViewById(R.id.f_width_2);
 
-        // OBS command spinner
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
             android.R.layout.simple_spinner_item, OBS_COMMANDS);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         fObsCommand.setAdapter(adapter);
 
-        // Type radio toggles which panel is visible
-        fTypeGroup.setOnCheckedChangeListener((group, id) -> {
-            keysFields.setVisibility(id == R.id.f_type_keys  ? View.VISIBLE : View.GONE);
-            soundFields.setVisibility(id == R.id.f_type_sound ? View.VISIBLE : View.GONE);
-            obsFields.setVisibility(id == R.id.f_type_obs    ? View.VISIBLE : View.GONE);
-        });
+        fTypeGroup.setOnCheckedChangeListener((group, id) -> updateTypeFields(id));
 
-        // OBS command → show/hide scene and source fields
         fObsCommand.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { updateObsFields(); }
             public void onNothingSelected(AdapterView<?> p) {}
@@ -101,16 +92,19 @@ public class EditButtonActivity extends AppCompatActivity {
             fSound.setText(btn.sound);
             fObsScene.setText(btn.obsScene);
             fObsSource.setText(btn.obsSource);
+            fTwitchDesc.setText(btn.twitchDescription != null ? btn.twitchDescription : "");
             selectedColor = btn.color != null ? btn.color : "#00e5ff";
             fConfirmTap.setChecked(btn.confirmTap);
             fHaptic.setChecked(btn.haptic);
             if (btn.widthSpan == 2) fWidth2.setChecked(true); else fWidth1.setChecked(true);
 
-            if ("sound".equals(btn.type))     fTypeSound.setChecked(true);
-            else if ("obs".equals(btn.type))  fTypeObs.setChecked(true);
-            else                              fTypeKeys.setChecked(true);
+            switch (btn.type) {
+                case "sound":  fTypeSound.setChecked(true);  break;
+                case "obs":    fTypeObs.setChecked(true);    break;
+                case "twitch": fTypeTwitch.setChecked(true); break;
+                default:       fTypeKeys.setChecked(true);   break;
+            }
 
-            // Set spinner to saved command
             if (btn.obsCommand != null) {
                 for (int i = 0; i < OBS_COMMANDS.length; i++) {
                     if (OBS_COMMANDS[i].equals(btn.obsCommand)) {
@@ -126,20 +120,31 @@ public class EditButtonActivity extends AppCompatActivity {
         }
 
         ((TextView) findViewById(R.id.editor_title)).setText(isNew ? "New Button" : "Edit Button");
-
         findViewById(R.id.btn_save).setOnClickListener(v -> save());
         findViewById(R.id.btn_cancel).setOnClickListener(v -> finish());
+        View del = findViewById(R.id.btn_delete);
+        del.setVisibility(isNew ? View.GONE : View.VISIBLE);
+        del.setOnClickListener(v -> delete());
+    }
 
-        View deleteBtn = findViewById(R.id.btn_delete);
-        deleteBtn.setVisibility(isNew ? View.GONE : View.VISIBLE);
-        deleteBtn.setOnClickListener(v -> delete());
+    private void updateTypeFields(int checkedId) {
+        keysFields.setVisibility(checkedId == R.id.f_type_keys    ? View.VISIBLE : View.GONE);
+        soundFields.setVisibility(checkedId == R.id.f_type_sound  ? View.VISIBLE : View.GONE);
+        obsFields.setVisibility(checkedId == R.id.f_type_obs      ? View.VISIBLE : View.GONE);
+        twitchFields.setVisibility(checkedId == R.id.f_type_twitch ? View.VISIBLE : View.GONE);
+
+        // Auto-set Twitch purple color when switching to Twitch type
+        if (checkedId == R.id.f_type_twitch && isNew) {
+            selectedColor = "#9146ff";
+            refreshSwatchSelection();
+        }
     }
 
     private void updateObsFields() {
         String cmd = (String) fObsCommand.getSelectedItem();
         boolean needsScene  = "SetCurrentProgramScene".equals(cmd);
         boolean needsSource = "ToggleMute".equals(cmd) || "SetVolume".equals(cmd);
-        fObsScene.setVisibility(needsScene  ? View.VISIBLE : View.GONE);
+        fObsScene.setVisibility(needsScene   ? View.VISIBLE : View.GONE);
         fObsSource.setVisibility(needsSource ? View.VISIBLE : View.GONE);
         findViewById(R.id.f_obs_scene_label).setVisibility(needsScene   ? View.VISIBLE : View.GONE);
         findViewById(R.id.f_obs_source_label).setVisibility(needsSource ? View.VISIBLE : View.GONE);
@@ -147,8 +152,8 @@ public class EditButtonActivity extends AppCompatActivity {
 
     private void buildColorSwatches() {
         colorRow.removeAllViews();
-        int size = (int)(44 * dp);
-        int margin = (int)(6 * dp);
+        int size   = (int)(42 * dp);
+        int margin = (int)(5  * dp);
         for (String hex : COLORS) {
             View s = new View(this);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
@@ -178,30 +183,35 @@ public class EditButtonActivity extends AppCompatActivity {
         if (label.isEmpty()) { fLabel.setError("Required"); return; }
 
         String type;
-        if (fTypeSound.isChecked())    type = "sound";
-        else if (fTypeObs.isChecked()) type = "obs";
-        else                           type = "keys";
+        if      (fTypeSound.isChecked())  type = "sound";
+        else if (fTypeObs.isChecked())    type = "obs";
+        else if (fTypeTwitch.isChecked()) type = "twitch";
+        else                              type = "keys";
+
+        // Clamp Twitch description to 140 chars (Twitch API limit)
+        String twitchDesc = fTwitchDesc.getText().toString().trim();
+        if (twitchDesc.length() > 140) twitchDesc = twitchDesc.substring(0, 140);
 
         DeckButton btn = new DeckButton();
-        btn.id         = isNew ? AppState.uid()
-                               : state.pages.get(pageIdx).buttons.get(btnIdx).id;
-        btn.icon       = icon.isEmpty() ? "▶" : icon;
-        btn.label      = label;
-        btn.type       = type;
-        btn.keys       = fKeys.getText().toString().trim();
-        btn.sound      = fSound.getText().toString().trim();
-        btn.color      = selectedColor;
-        btn.confirmTap = fConfirmTap.isChecked();
-        btn.haptic     = fHaptic.isChecked();
-        btn.widthSpan  = fWidth2.isChecked() ? 2 : 1;
-        btn.obsCommand = (String) fObsCommand.getSelectedItem();
-        btn.obsScene   = fObsScene.getText().toString().trim();
-        btn.obsSource  = fObsSource.getText().toString().trim();
-        btn.obsVolume  = -1f;
+        btn.id               = isNew ? AppState.uid() : state.pages.get(pageIdx).buttons.get(btnIdx).id;
+        btn.icon             = icon.isEmpty() ? "▶" : icon;
+        btn.label            = label;
+        btn.type             = type;
+        btn.keys             = fKeys.getText().toString().trim();
+        btn.sound            = fSound.getText().toString().trim();
+        btn.color            = selectedColor;
+        btn.confirmTap       = fConfirmTap.isChecked();
+        btn.haptic           = fHaptic.isChecked();
+        btn.widthSpan        = fWidth2.isChecked() ? 2 : 1;
+        btn.obsCommand       = (String) fObsCommand.getSelectedItem();
+        btn.obsScene         = fObsScene.getText().toString().trim();
+        btn.obsSource        = fObsSource.getText().toString().trim();
+        btn.obsVolume        = -1f;
+        btn.twitchCommand    = "marker";
+        btn.twitchDescription = twitchDesc;
 
         if (isNew) state.pages.get(pageIdx).buttons.add(btn);
         else       state.pages.get(pageIdx).buttons.set(btnIdx, btn);
-
         state.save();
         finish();
     }
@@ -211,9 +221,7 @@ public class EditButtonActivity extends AppCompatActivity {
             .setTitle("Delete button?")
             .setPositiveButton("Delete", (d, w) -> {
                 state.pages.get(pageIdx).buttons.remove(btnIdx);
-                state.save();
-                finish();
-            })
-            .setNegativeButton("Cancel", null).show();
+                state.save(); finish();
+            }).setNegativeButton("Cancel", null).show();
     }
 }

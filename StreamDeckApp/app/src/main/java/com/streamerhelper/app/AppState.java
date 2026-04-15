@@ -30,7 +30,6 @@ public class AppState {
         return instance;
     }
 
-    // ── LOAD ──────────────────────────────────────────────────────────────────
     private List<DeckPage> loadPages() {
         String json = prefs.getString(KEY_PAGES, null);
         if (json != null) {
@@ -45,19 +44,14 @@ public class AppState {
         return defaultPages();
     }
 
-    // ── SAVE ──────────────────────────────────────────────────────────────────
     public void save() {
         try {
             JSONArray arr = new JSONArray();
             for (DeckPage p : pages) arr.put(pageToJson(p));
-            prefs.edit()
-                .putString(KEY_IP, serverIp)
-                .putString(KEY_PAGES, arr.toString())
-                .apply();
+            prefs.edit().putString(KEY_IP, serverIp).putString(KEY_PAGES, arr.toString()).apply();
         } catch (Exception ignored) {}
     }
 
-    // ── SERIALISATION ─────────────────────────────────────────────────────────
     private JSONObject pageToJson(DeckPage p) throws Exception {
         JSONObject o = new JSONObject();
         o.put("name", p.name);
@@ -77,39 +71,43 @@ public class AppState {
 
     private JSONObject btnToJson(DeckButton b) throws Exception {
         JSONObject o = new JSONObject();
-        o.put("id",         b.id);
-        o.put("icon",       b.icon);
-        o.put("label",      b.label);
-        o.put("type",       b.type);
-        o.put("keys",       b.keys);
-        o.put("sound",      b.sound);
-        o.put("color",      b.color);
-        o.put("confirmTap", b.confirmTap);
-        o.put("haptic",     b.haptic);
-        o.put("widthSpan",  b.widthSpan);
-        o.put("obsCommand", b.obsCommand);
-        o.put("obsScene",   b.obsScene);
-        o.put("obsSource",  b.obsSource);
-        o.put("obsVolume",  b.obsVolume);
+        o.put("id",                b.id);
+        o.put("icon",              b.icon);
+        o.put("label",             b.label);
+        o.put("type",              b.type);
+        o.put("keys",              b.keys);
+        o.put("sound",             b.sound);
+        o.put("color",             b.color);
+        o.put("confirmTap",        b.confirmTap);
+        o.put("haptic",            b.haptic);
+        o.put("widthSpan",         b.widthSpan);
+        o.put("obsCommand",        b.obsCommand);
+        o.put("obsScene",          b.obsScene);
+        o.put("obsSource",         b.obsSource);
+        o.put("obsVolume",         b.obsVolume);
+        o.put("twitchCommand",     b.twitchCommand);
+        o.put("twitchDescription", b.twitchDescription);
         return o;
     }
 
     private DeckButton btnFromJson(JSONObject o) throws Exception {
         DeckButton b = new DeckButton();
-        b.id         = o.optString("id",    uid());
-        b.icon       = o.optString("icon",  "▶");
-        b.label      = o.optString("label", "Button");
-        b.type       = o.optString("type",  "keys");
-        b.keys       = o.optString("keys",  "");
-        b.sound      = o.optString("sound", "");
-        b.color      = o.optString("color", "#00e5ff");
-        b.confirmTap = o.optBoolean("confirmTap", false);
-        b.haptic     = o.optBoolean("haptic",     true);
-        b.widthSpan  = o.optInt("widthSpan",      1);
-        b.obsCommand = o.optString("obsCommand",  "");
-        b.obsScene   = o.optString("obsScene",    "");
-        b.obsSource  = o.optString("obsSource",   "");
-        b.obsVolume  = (float) o.optDouble("obsVolume", -1.0);
+        b.id               = o.optString("id",                uid());
+        b.icon             = o.optString("icon",              "▶");
+        b.label            = o.optString("label",             "Button");
+        b.type             = o.optString("type",              "keys");
+        b.keys             = o.optString("keys",              "");
+        b.sound            = o.optString("sound",             "");
+        b.color            = o.optString("color",             "#00e5ff");
+        b.confirmTap       = o.optBoolean("confirmTap",       false);
+        b.haptic           = o.optBoolean("haptic",           true);
+        b.widthSpan        = o.optInt("widthSpan",            1);
+        b.obsCommand       = o.optString("obsCommand",        "");
+        b.obsScene         = o.optString("obsScene",          "");
+        b.obsSource        = o.optString("obsSource",         "");
+        b.obsVolume        = (float) o.optDouble("obsVolume", -1.0);
+        b.twitchCommand    = o.optString("twitchCommand",     "marker");
+        b.twitchDescription= o.optString("twitchDescription", "");
         return b;
     }
 
@@ -117,10 +115,10 @@ public class AppState {
         return UUID.randomUUID().toString().substring(0, 8);
     }
 
-    // ── DEFAULTS ──────────────────────────────────────────────────────────────
     private List<DeckPage> defaultPages() {
         List<DeckPage> list = new ArrayList<>();
 
+        // ── Speedrun page ──
         DeckPage speedrun = new DeckPage("Speedrun");
         speedrun.buttons.add(btn("⚡", "Split",    "keys", "ctrl,alt,1", "#00e5ff"));
         speedrun.buttons.add(btn("↩",  "Reset",    "keys", "ctrl,alt,2", "#ff3c6e"));
@@ -130,36 +128,61 @@ public class AppState {
         speedrun.buttons.add(btn("🔔",  "Alert",    "keys", "ctrl,alt,5", "#ff6b35"));
         list.add(speedrun);
 
+        // ── OBS page ──
         DeckPage obs = new DeckPage("OBS");
-        DeckButton startStream = btn("🔴", "Go Live",  "obs", "", "#ff3c6e");
-        startStream.obsCommand = "StartStream";
-        startStream.confirmTap = true;   // safety: require double-tap
+        DeckButton startStream = btn("🔴", "Go Live",   "obs", "", "#ff3c6e");
+        startStream.obsCommand = "StartStream"; startStream.confirmTap = true;
         obs.buttons.add(startStream);
-
         DeckButton stopStream = btn("⬛", "End Stream", "obs", "", "#555e7a");
-        stopStream.obsCommand = "StopStream";
-        stopStream.confirmTap = true;
+        stopStream.obsCommand = "StopStream"; stopStream.confirmTap = true;
         obs.buttons.add(stopStream);
-
-        DeckButton recStart = btn("⏺", "Record",   "obs", "", "#ff9f00");
-        recStart.obsCommand = "StartRecord";
-        obs.buttons.add(recStart);
-
-        DeckButton recStop = btn("⏹",  "Stop Rec", "obs", "", "#555e7a");
-        recStop.obsCommand  = "StopRecord";
-        obs.buttons.add(recStop);
-
-        DeckButton scene1 = btn("🎮", "Gameplay",  "obs", "", "#00e5ff");
-        scene1.obsCommand = "SetCurrentProgramScene";
-        scene1.obsScene   = "Gameplay";
+        DeckButton recStart = btn("⏺", "Record",    "obs", "", "#ff9f00");
+        recStart.obsCommand = "StartRecord"; obs.buttons.add(recStart);
+        DeckButton recStop  = btn("⏹", "Stop Rec",  "obs", "", "#555e7a");
+        recStop.obsCommand  = "StopRecord";  obs.buttons.add(recStop);
+        DeckButton scene1 = btn("🎮", "Gameplay",   "obs", "", "#00e5ff");
+        scene1.obsCommand = "SetCurrentProgramScene"; scene1.obsScene = "Gameplay";
         obs.buttons.add(scene1);
-
-        DeckButton scene2 = btn("💬", "Just Chat", "obs", "", "#38bdf8");
-        scene2.obsCommand = "SetCurrentProgramScene";
-        scene2.obsScene   = "Just Chatting";
+        DeckButton scene2 = btn("💬", "Just Chat",  "obs", "", "#38bdf8");
+        scene2.obsCommand = "SetCurrentProgramScene"; scene2.obsScene = "Just Chatting";
         obs.buttons.add(scene2);
-
         list.add(obs);
+
+        // ── Twitch page ──
+        DeckPage twitch = new DeckPage("Twitch");
+
+        DeckButton marker = new DeckButton(uid(), "📍", "Mark VOD", "twitch", "", "", "#9146ff");
+        marker.twitchCommand     = "marker";
+        marker.twitchDescription = "";
+        marker.haptic            = true;
+        twitch.buttons.add(marker);
+
+        DeckButton markerWR = new DeckButton(uid(), "🏆", "WR Pace",  "twitch", "", "", "#fbbf24");
+        markerWR.twitchCommand     = "marker";
+        markerWR.twitchDescription = "WR Pace";
+        twitch.buttons.add(markerWR);
+
+        DeckButton markerFunny = new DeckButton(uid(), "😂", "Funny",   "twitch", "", "", "#ff6b35");
+        markerFunny.twitchCommand     = "marker";
+        markerFunny.twitchDescription = "Funny moment";
+        twitch.buttons.add(markerFunny);
+
+        DeckButton markerClip = new DeckButton(uid(), "✂️", "Clip This", "twitch", "", "", "#00ff99");
+        markerClip.twitchCommand     = "marker";
+        markerClip.twitchDescription = "Clip this";
+        twitch.buttons.add(markerClip);
+
+        DeckButton markerPB = new DeckButton(uid(), "🎯", "PB Attempt", "twitch", "", "", "#e879f9");
+        markerPB.twitchCommand     = "marker";
+        markerPB.twitchDescription = "PB attempt";
+        twitch.buttons.add(markerPB);
+
+        DeckButton markerBlank = new DeckButton(uid(), "📌", "Marker",   "twitch", "", "", "#9146ff");
+        markerBlank.twitchCommand     = "marker";
+        markerBlank.twitchDescription = "";
+        twitch.buttons.add(markerBlank);
+
+        list.add(twitch);
         return list;
     }
 

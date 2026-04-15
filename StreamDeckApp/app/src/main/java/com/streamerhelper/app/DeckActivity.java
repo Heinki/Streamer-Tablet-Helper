@@ -406,9 +406,13 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
 
     private String subHint(DeckButton btn) {
         switch (btn.type) {
-            case "obs":   return "OBS: " + (btn.obsCommand != null ? btn.obsCommand : "");
-            case "sound": return "🔊 sound";
-            default:      return btn.keys != null ? btn.keys : "";
+            case "obs":    return "OBS: " + (btn.obsCommand != null ? btn.obsCommand : "");
+            case "twitch": {
+                String d = btn.twitchDescription != null ? btn.twitchDescription : "";
+                return d.isEmpty() ? "Twitch marker" : "Marker: " + d;
+            }
+            case "sound":  return "🔊 sound";
+            default:       return btn.keys != null ? btn.keys : "";
         }
     }
 
@@ -487,7 +491,8 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         switch (btn.type) {
             case "keys":  client.sendKeys(btn.keys, cb); break;
             case "sound": client.sendSound(btn.sound, cb); break;
-            case "obs":   client.sendObs(btn.obsCommand, btn.obsScene, btn.obsSource, btn.obsVolume, cb); break;
+            case "obs":    client.sendObs(btn.obsCommand, btn.obsScene, btn.obsSource, btn.obsVolume, cb); break;
+            case "twitch": client.sendTwitch(btn.twitchCommand, btn.twitchDescription, cb); break;
         }
     }
 
