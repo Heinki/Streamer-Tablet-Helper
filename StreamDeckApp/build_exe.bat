@@ -1,5 +1,5 @@
 @echo off
-title Streamer Tablet Helper — Build EXE
+title Streamer Tablet Helper - Build EXE
 echo.
 echo  Building Streamer Tablet Helper...
 echo  This takes about 1-2 minutes the first time.
@@ -22,8 +22,6 @@ pyinstaller ^
     --onefile ^
     --windowed ^
     --name "StreamerTabletHelper" ^
-    --add-data "config.json;." ^
-    --icon "icon.ico" ^
     streamer_helper_server.py
 
 if errorlevel 1 (

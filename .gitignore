@@ -94,3 +94,7 @@ out/
 
 # Built Visual Studio Code Extensions
 *.vsix
+StreamDeckApp/local.properties
+*.lock
+*.bin
+*.properties

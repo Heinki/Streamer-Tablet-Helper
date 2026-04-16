@@ -1,0 +1,7 @@
+{
+  "obs_password": "",
+  "obs_host": "localhost",
+  "obs_port": 4455,
+  "twitch_client_id": "",
+  "start_with_windows": false
+}
