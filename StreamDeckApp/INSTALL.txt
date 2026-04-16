@@ -1,4 +1,4 @@
-Streamer Tablet Helper - PC Server  v4.0
+Streamer Tablet Helper - PC Server
 =========================================
 
 QUICK START - Two options:

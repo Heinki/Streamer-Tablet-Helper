@@ -336,9 +336,10 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     }
 
     private View makeBtnCard(DeckButton btn, int idx) {
-        int color;
-        try { color = Color.parseColor(btn.color != null ? btn.color : "#00e5ff"); }
-        catch (Exception e) { color = 0xFF00e5ff; }
+        int parsedColor;
+        try { parsedColor = Color.parseColor(btn.color != null ? btn.color : "#00e5ff"); }
+        catch (Exception e) { parsedColor = 0xFF00e5ff; }
+        final int color = parsedColor;
 
         FrameLayout card = new FrameLayout(this);
 

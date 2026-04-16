@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Streamer Tablet Helper - PC Server  v4.0
+Streamer Tablet Helper - PC Server
 Double-click to run. No terminal needed.
 
 Features: keyboard shortcuts / sounds / OBS WebSocket / Twitch markers
@@ -412,7 +412,6 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {
                 "status":  "ok",
                 "server":  "Streamer Tablet Helper",
-                "version": "4.0",
                 "obs":     bool(_cfg["obs_password"]),
                 "twitch":  bool(_twitch_access_token),
             })
@@ -531,6 +530,7 @@ class App(tk.Tk):
         self._httpd         = None
         self._ip            = get_local_ip()
         self._tray          = None
+        self._ip_hidden     = True
 
         self._build_ui()
         self._start_server()
@@ -551,8 +551,6 @@ class App(tk.Tk):
         hdr.pack_propagate(False)
         tk.Label(hdr, text="🎮  Streamer Tablet Helper", font=("Segoe UI", 14, "bold"),
                  bg=C_SURFACE, fg=C_ACCENT).pack(side="left", padx=16, pady=14)
-        tk.Label(hdr, text="v4.0", font=("Segoe UI", 9),
-                 bg=C_SURFACE, fg=C_MUTED).pack(side="left", pady=14)
 
         sep = tk.Frame(self, bg=C_BORDER, height=1); sep.pack(fill="x")
 
@@ -562,19 +560,31 @@ class App(tk.Tk):
 
         # IP card
         ip_card = self._card(cards, "YOUR PC IP - enter this in the app")
-        self._lbl_ip = tk.Label(ip_card, text=self._ip, font=("Courier New", 22, "bold"),
-                                bg=C_SURFACE, fg=C_ACCENT)
+        
+        self._lbl_ip_warning = tk.Label(ip_card, text="⚠️  WARNING: Do NOT show this on stream!", 
+                                         font=("Segoe UI", 9, "bold"), bg=C_SURFACE, fg=C_RED)
+        self._lbl_ip_warning.pack(pady=(0, 6))
+
+        self._lbl_ip = tk.Label(ip_card, text="• • • • • • • • •", font=("Courier New", 22, "bold"),
+                                bg=C_SURFACE, fg=C_MUTED)
         self._lbl_ip.pack(pady=(0, 4))
+
         btn_row = tk.Frame(ip_card, bg=C_SURFACE)
         btn_row.pack()
+        
+        self._btn_ip_toggle = tk.Button(btn_row, text="👁️ Show IP", font=("Segoe UI", 9), bg=C_BORDER, fg=C_TEXT,
+                  relief="flat", cursor="hand2", padx=8, pady=3,
+                  command=self._toggle_ip)
+        self._btn_ip_toggle.pack(side="left", padx=4)
+        
         tk.Button(btn_row, text="📋 Copy", font=("Segoe UI", 9), bg=C_BORDER, fg=C_TEXT,
                   relief="flat", cursor="hand2", padx=8, pady=3,
                   command=lambda: self._copy(self._ip)).pack(side="left", padx=4)
+        
         tk.Button(btn_row, text="🔄 Refresh", font=("Segoe UI", 9), bg=C_BORDER, fg=C_TEXT,
                   relief="flat", cursor="hand2", padx=8, pady=3,
                   command=self._refresh_ip).pack(side="left", padx=4)
-        ip_card.pack(fill="x", padx=0, pady=(0, 8))
-
+        
         # Feature status row
         status_row = tk.Frame(self, bg=C_BG, padx=12)
         status_row.pack(fill="x")
@@ -610,6 +620,7 @@ class App(tk.Tk):
 
     def _card(self, parent, title: str) -> tk.Frame:
         wrapper = tk.Frame(parent, bg=C_BG)
+        wrapper.pack(fill="x", pady=(0, 8))
         tk.Label(wrapper, text=title.upper(), font=("Segoe UI", 8), bg=C_BG,
                  fg=C_MUTED, anchor="w").pack(fill="x", pady=(0, 4))
         inner = tk.Frame(wrapper, bg=C_SURFACE, padx=16, pady=12)
@@ -701,7 +712,6 @@ class App(tk.Tk):
         def _entry(parent, value="", **kw):
             e = tk.Entry(parent, bg=C_SURFACE, fg=C_TEXT, insertbackground=C_TEXT,
                          relief="flat", font=("Segoe UI", 10), **kw)
-            e.insert(0, value)
             e.pack(side="left", fill="x", expand=True, ipady=5, padx=(0, 4))
             return e
 
@@ -926,11 +936,21 @@ class App(tk.Tk):
     def _copy(self, text: str):
         self.clipboard_clear()
         self.clipboard_append(text)
-        log(f"Copied to clipboard: {text}")
+        log("IP copied to clipboard")
+
+    def _toggle_ip(self):
+        self._ip_hidden = not self._ip_hidden
+        if self._ip_hidden:
+            self._lbl_ip.config(text="• • • • • • • • •", fg=C_MUTED)
+            self._btn_ip_toggle.config(text="👁️ Show IP")
+        else:
+            self._lbl_ip.config(text=self._ip, fg=C_ACCENT)
+            self._btn_ip_toggle.config(text="🙈 Hide IP")
 
     def _refresh_ip(self):
         self._ip = get_local_ip()
-        self._lbl_ip.config(text=self._ip)
+        if not self._ip_hidden:
+            self._lbl_ip.config(text=self._ip)
         log(f"IP refreshed: {self._ip}")
 
     def _on_close(self):
