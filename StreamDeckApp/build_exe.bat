@@ -37,6 +37,6 @@ echo   dist\StreamerTabletHelper.exe
 echo  =========================================
 echo.
 echo  Copy StreamerTabletHelper.exe wherever you like.
-echo  Double-click it to run — no Python needed.
+echo  Double-click it to run - no Python needed.
 echo.
 pause

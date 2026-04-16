@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Streamer Tablet Helper — PC Server  v4.0
+Streamer Tablet Helper - PC Server  v4.0
 Double-click to run. No terminal needed.
 
-Features: keyboard shortcuts · sounds · OBS WebSocket · Twitch markers
-GUI:      system tray · status window · settings panel · auto-start
+Features: keyboard shortcuts / sounds / OBS WebSocket / Twitch markers
+GUI:      system tray / status window / settings panel / auto-start
 """
 
 import json, os, sys, socket, subprocess, time, threading, urllib.request, urllib.parse
@@ -230,7 +230,7 @@ def _twitch_api(method, path, body=None):
                         return True, json.loads(r2.read())
                 except Exception as e2:
                     return False, str(e2)
-            return False, "Token expired — please log in again from Settings"
+            return False, "Token expired - please log in again from Settings"
         try:   return False, json.loads(e.read()).get("message", str(e))
         except: return False, str(e)
     except Exception as e:
@@ -297,78 +297,82 @@ def handle_twitch(data):
         if not _twitch_user_id:
             if _twitch_access_token: _fetch_twitch_user()
             if not _twitch_user_id:
-                return False, "Not logged in to Twitch — open Settings to log in"
-        body = {"user_id": _twitch_user_id}
+                return False, "Not logged in to Twitch - open Settings to log in"
+        
         desc = data.get("description", "")
-        if desc: body["description"] = desc[:140]
-        ok, resp = _twitch_api("POST", "/streams/markers", body)
+        ok, resp = _twitch_api("POST", f"/streams/markers?user_id={_twitch_user_id}&description={urllib.parse.quote(desc)}")
         if ok:
-            marker = resp.get("data", [{}])[0]
-            pos    = marker.get("position_seconds", "?")
-            return True, f"Marker at {pos}s" + (f" — {desc}" if desc else "")
-        return False, str(resp)
+            pos = resp.get("data", [{}])[0].get("position_seconds", 0)
+            return True, f"Marker at {pos}s" + (f" - {desc}" if desc else "")
+        return False, resp
     return False, f"Unknown Twitch command: {cmd}"
 
-# Twitch Device Code Flow — called from Settings GUI
-def twitch_login_device_flow(on_url: callable, on_done: callable):
+# Twitch Device Code Flow - called from Settings GUI
+def twitch_login(on_done):
     """
-    Runs in a background thread.
-    on_url(url, code)  → called when the browser URL + code are ready
-    on_done(ok, msg)   → called when login succeeds or fails
+    1. Get device code
+    2. Show URL + Code to user
+    3. Poll for token
     """
-    client_id = _cfg["twitch_client_id"]
-    if not client_id:
-        on_done(False, "No Client ID — fill in the Twitch Client ID field first")
-        return
-
     def _run():
-        global _twitch_access_token, _twitch_refresh_token
+        if not _cfg["twitch_client_id"]:
+            on_done(False, "No Client ID - fill in the Twitch Client ID field first")
+            return
+
         try:
-            params = urllib.parse.urlencode({"client_id": client_id, "scopes": "channel:manage:broadcast"}).encode()
+            # Step 1: Request Device Code
+            params = urllib.parse.urlencode({
+                "client_id": _cfg["twitch_client_id"],
+                "scopes":    "channel:manage:broadcast",
+            }).encode()
             req = urllib.request.Request("https://id.twitch.tv/oauth2/device", data=params, method="POST")
-            with urllib.request.urlopen(req, timeout=10) as r:
-                device_resp = json.loads(r.read())
-        except Exception as e:
-            on_done(False, f"Could not start login: {e}"); return
+            with urllib.request.urlopen(req, timeout=8) as r:
+                d = json.loads(r.read())
+            
+            # Step 2: Inform user
+            # We open the URL automatically for them, but they still need the code
+            import webbrowser
+            webbrowser.open(d["verification_uri"])
+            
+            # Use a message box that doesn't block polling
+            messagebox.showinfo("Twitch Login", f"A browser window has opened.\n\nPlease enter this code to authorize:\n\n {d['user_code']}")
 
-        user_code   = device_resp["user_code"]
-        verify_uri  = device_resp["verification_uri"]
-        device_code = device_resp["device_code"]
-        expires_in  = device_resp.get("expires_in", 300)
-        interval    = device_resp.get("interval", 5)
+            # Step 3: Poll
+            interval = d.get("interval", 5)
+            expires  = time.time() + d.get("expires_in", 300)
+            device_code = d["device_code"]
 
-        on_url(verify_uri, user_code)
-
-        import webbrowser
-        try: webbrowser.open(verify_uri)
-        except Exception: pass
-
-        deadline = time.time() + expires_in
-        while time.time() < deadline:
-            time.sleep(interval)
-            try:
-                poll = urllib.parse.urlencode({
-                    "client_id":   client_id,
+            while time.time() < expires:
+                time.sleep(interval)
+                poll_params = urllib.parse.urlencode({
+                    "client_id":   _cfg["twitch_client_id"],
+                    "scopes":      "channel:manage:broadcast",
                     "device_code": device_code,
                     "grant_type":  "urn:ietf:params:oauth:grant-type:device_code",
                 }).encode()
-                req2 = urllib.request.Request("https://id.twitch.tv/oauth2/token", data=poll, method="POST")
-                with urllib.request.urlopen(req2, timeout=10) as r:
-                    token_resp = json.loads(r.read())
-                _twitch_access_token  = token_resp["access_token"]
-                _twitch_refresh_token = token_resp.get("refresh_token", "")
-                if _fetch_twitch_user():
-                    on_done(True, f"Logged in as {_twitch_username}!")
-                else:
-                    on_done(True, "Logged in (could not fetch username)")
-                return
-            except urllib.error.HTTPError as e:
-                if e.code != 400:
-                    on_done(False, f"Auth error {e.code}"); return
-            except Exception as e:
-                on_done(False, str(e)); return
+                
+                try:
+                    req_poll = urllib.request.Request("https://id.twitch.tv/oauth2/token", data=poll_params, method="POST")
+                    with urllib.request.urlopen(req_poll, timeout=8) as r_poll:
+                        token_data = json.loads(r_poll.read())
+                    
+                    global _twitch_access_token, _twitch_refresh_token
+                    _twitch_access_token  = token_data["access_token"]
+                    _twitch_refresh_token = token_data["refresh_token"]
+                    _fetch_twitch_user()
+                    on_done(True, f"Logged in as {_twitch_username}")
+                    return
+                except urllib.error.HTTPError as e_poll:
+                    err_body = json.loads(e_poll.read())
+                    if err_body.get("message") == "authorization_pending":
+                        continue
+                    else:
+                        on_done(False, err_body.get("message", "Login failed"))
+                        return
 
-        on_done(False, "Login timed out — please try again")
+            on_done(False, "Login timed out - please try again")
+        except Exception as e:
+            on_done(False, str(e))
 
     threading.Thread(target=_run, daemon=True).start()
 
