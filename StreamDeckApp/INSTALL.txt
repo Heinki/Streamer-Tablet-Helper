@@ -1,50 +1,38 @@
-═══════════════════════════════════════════════════════
-  Streamer Tablet Helper — PC Server  v4.0
-═══════════════════════════════════════════════════════
+Streamer Tablet Helper - PC Server  v4.0
+=========================================
 
-QUICK START — Two options:
+QUICK START - Two options:
 
-OPTION A: Run from Python (if you have Python installed)
-────────────────────────────────────────────────────────
-1. Install dependencies (one time only):
-   Double-click:  install_deps.bat
+1. THE EASY WAY (Run the EXE)
+   - Go to the 'dist' folder
+   - Double-click StreamerTabletHelper.exe
+   - That's it! No Python needed.
 
-2. Run the server:
-   Double-click:  streamer_helper_server.py
-   (or right-click → Open With → Python)
+2. THE DEV WAY (Run the script)
+   - Run 'install_deps.bat' to install requirements
+   - Run 'streamer_helper_server.py' with Python 3
 
+-----------------------------------------
+FEATURES:
+- Keyboard shortcuts: simulate any key combo
+- Sounds: play any .wav file
+- OBS Control: scenes, streaming, recording, mute
+- Twitch Markers: create stream markers instantly
+- Auto-Start: option to start with Windows
+- System Tray: runs in the background
 
-OPTION B: Build a standalone .EXE (no Python needed after)
-────────────────────────────────────────────────────────────
-1. Install Python from https://python.org  (one time only)
-2. Double-click:  build_exe.bat
-3. Your EXE appears in the dist/ folder
-4. Copy StreamerTabletHelper.exe anywhere you like
-5. Double-click the EXE — that's it, no Python needed
+-----------------------------------------
+HOW TO USE WITH THE TABLET:
+1. Run the server on your PC
+2. It will show your IP address (e.g., 192.168.1.50)
+3. Open the app on your tablet/phone
+4. Enter that IP address and click 'Connect'
+5. Your buttons will appear!
 
-
-WHAT THE APP DOES
-─────────────────
-• Shows your PC's IP address — type that into the tablet/phone app
-• Receives button presses from your devices over local Wi-Fi
-• Executes keyboard shortcuts, sounds, OBS commands, Twitch markers
-• Settings panel built in — no terminal ever needed
-• "Start with Windows" toggle in Settings
-
-
-OBS INTEGRATION
-───────────────
-• Open OBS → Tools → WebSocket Server Settings → Enable
-• Set a password
-• Enter that password in the app's Settings tab
-
-
-TWITCH MARKERS
-──────────────
-• Go to dev.twitch.tv/console → Register Application
-  Name: anything · Type: Public · Redirect: http://localhost
-• Copy the Client ID into the Settings tab
-• Click "Log in with Twitch" — browser opens automatically
-• Approve once, done forever (token auto-refreshes)
-
-═══════════════════════════════════════════════════════
+-----------------------------------------
+TWITCH SETUP:
+- Open 'Settings' in the PC app
+- Enter your Twitch Client ID (get one at dev.twitch.tv)
+- Click 'Log in with Twitch'
+- A browser will open - follow the steps
+- Now your Twitch marker buttons will work!

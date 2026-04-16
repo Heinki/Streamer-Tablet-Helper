@@ -561,7 +561,7 @@ class App(tk.Tk):
         cards.pack(fill="x")
 
         # IP card
-        ip_card = self._card(cards, "YOUR PC IP — enter this in the app")
+        ip_card = self._card(cards, "YOUR PC IP - enter this in the app")
         self._lbl_ip = tk.Label(ip_card, text=self._ip, font=("Courier New", 22, "bold"),
                                 bg=C_SURFACE, fg=C_ACCENT)
         self._lbl_ip.pack(pady=(0, 4))
@@ -731,7 +731,7 @@ class App(tk.Tk):
                   padx=10, pady=4, command=self._test_obs).pack(side="left")
 
         # ── TWITCH ───────────────────────────────────────────────────────────
-        _section("TWITCH — STREAM MARKERS")
+        _section("TWITCH - STREAM MARKERS")
 
         self._twitch_id_var = tk.StringVar(value=_cfg["twitch_client_id"])
         _row("Client ID", lambda p: _entry(p, _cfg["twitch_client_id"],
@@ -863,10 +863,10 @@ class App(tk.Tk):
         def _run():
             try:
                 self._httpd = HTTPServer(("0.0.0.0", PORT), Handler)
-                log(f"Server started — listening on port {PORT}")
+                log(f"Server started - listening on port {PORT}")
                 self._httpd.serve_forever()
             except Exception as e:
-                log(f"Server error: {e}")
+                log(f"Server failed to start: {e}")
         self._server_thread = threading.Thread(target=_run, daemon=True)
         self._server_thread.start()
 
@@ -884,16 +884,16 @@ class App(tk.Tk):
                 _twitch_user_id  = vdata.get("user_id",  _twitch_user_id)
                 _twitch_username = vdata.get("login",    _twitch_username)
                 _save_twitch_tokens()
-                log(f"Twitch ready — logged in as {_twitch_username}")
+                log(f"Twitch ready - logged in as {_twitch_username}")
                 self.after(0, self._update_twitch_label)
             except urllib.error.HTTPError as e:
                 if e.code == 401:
-                    log("Twitch token expired, refreshing…")
+                    log("Twitch token expired, refreshing...")
                     if _twitch_refresh():
                         log("Twitch token refreshed")
                         self.after(0, self._update_twitch_label)
                     else:
-                        log("Twitch token invalid — please log in again from Settings")
+                        log("Twitch token invalid - please log in again from Settings")
         threading.Thread(target=_run, daemon=True).start()
 
     # ── PERIODIC TICK ────────────────────────────────────────────────────────
@@ -976,7 +976,7 @@ class App(tk.Tk):
             threading.Thread(target=self._tray.run, daemon=True).start()
 
         except ImportError:
-            # pystray not installed — just minimise to taskbar normally
+            # pystray not installed - just minimise to taskbar normally
             self.iconify()
 
 # ─────────────────────────────────────────────────────────────────────────────
