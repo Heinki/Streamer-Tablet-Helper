@@ -1,42 +1,60 @@
 @echo off
-title Streamer Tablet Helper - Build EXE
+setlocal enabledelayedexpansion
+title Streamer Tablet Helper - Setup and Build
 echo.
-echo  Building Streamer Tablet Helper...
-echo  This takes about 1-2 minutes the first time.
+echo  --------------------------------------------------
+echo  Streamer Tablet Helper - Setup and Build
+echo  --------------------------------------------------
 echo.
 
-:: Check Python
+:: Check for Python
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo  ERROR: Python not found. Install from https://python.org
-    pause & exit /b 1
+    echo  ERROR: Python is not installed or not in your PATH.
+    echo.
+    echo  To fix this:
+    echo  1. Visit https://www.python.org/downloads/
+    echo  2. Download and run the installer for Windows.
+    echo  3. IMPORTANT: Check the box "Add Python to PATH" during installation.
+    echo  4. Restart this script after installation.
+    echo.
+    pause
+    exit /b 1
 )
 
-:: Install required packages
-echo  Installing dependencies...
-pip install pyinstaller pyautogui pystray pillow websocket-client --quiet
+:: Ensure pip is up to date
+echo  Checking for required tools...
+python -m pip install --upgrade pip --quiet
 
-:: Build
-echo  Building EXE...
+:: Install required packages
+echo  Installing dependencies (this may take a minute)...
+python -m pip install pyinstaller pyautogui pystray pillow websocket-client customtkinter --quiet
+
+:: Build the EXE
+echo  Building application...
 pyinstaller ^
     --onefile ^
     --windowed ^
+    --icon="Streamer Tablet Helper.png" ^
     --name "StreamerTabletHelper" ^
+    --collect-all customtkinter ^
     streamer_helper_server.py
 
 if errorlevel 1 (
     echo.
-    echo  Build failed. See error above.
-    pause & exit /b 1
+    echo  ERROR: Build failed. Please check the messages above.
+    pause
+    exit /b 1
 )
 
 echo.
-echo  =========================================
-echo   Done!  Your EXE is in the dist/ folder:
+echo  ==================================================
+echo   SUCCESS!
+echo   Your application is ready in the "dist" folder:
 echo   dist\StreamerTabletHelper.exe
-echo  =========================================
+echo  ==================================================
 echo.
-echo  Copy StreamerTabletHelper.exe wherever you like.
-echo  Double-click it to run - no Python needed.
+echo  You can now move StreamerTabletHelper.exe anywhere.
+echo  Double-click it to start the server.
 echo.
 pause

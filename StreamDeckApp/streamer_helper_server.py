@@ -7,10 +7,15 @@ Features: keyboard shortcuts / sounds / OBS WebSocket / Twitch markers
 GUI:      system tray / status window / settings panel / auto-start
 """
 
-import json, os, sys, socket, subprocess, time, threading, urllib.request, urllib.parse
+import json, os, sys, socket, subprocess, time, threading, urllib.request, urllib.parse, webbrowser
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
+from tkinter import messagebox
+import customtkinter as ctk
 from pathlib import Path
+
+# ── CustomTkinter setup
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 # ── When packaged with PyInstaller, __file__ lives inside a temp folder.
 # We store config next to the .exe / .py instead.
@@ -19,7 +24,6 @@ if getattr(sys, "frozen", False):
 else:
     _BASE = Path(__file__).parent
 
-_TOKEN_FILE   = _BASE / ".twitch_tokens.json"
 _CONFIG_FILE  = _BASE / "config.json"
 
 PORT = 7878
@@ -32,6 +36,7 @@ _cfg = {
     "obs_host":          "localhost",
     "obs_port":          4455,
     "twitch_client_id":  "",
+    "twitch_access_token": "",
     "start_with_windows": False,
 }
 
@@ -131,17 +136,21 @@ def play_sound(path: str) -> tuple:
 # ─────────────────────────────────────────────────────────────────────────────
 _obs_ws   = None
 _obs_lock = threading.Lock()
+_obs_connected = False   # Track actual connection state
 
 def obs_connect():
-    global _obs_ws
+    global _obs_ws, _obs_connected
     try:
         import websocket, hashlib, base64
     except ImportError:
+        _obs_connected = False
         return None, "websocket-client not installed"
     with _obs_lock:
         if _obs_ws is not None:
             try:
-                _obs_ws.ping(); return _obs_ws, None
+                _obs_ws.ping()
+                _obs_connected = True
+                return _obs_ws, None
             except Exception:
                 _obs_ws = None
         try:
@@ -164,13 +173,18 @@ def obs_connect():
                 ws.send(json.dumps({"op":1,"d":{"rpcVersion":1,"eventSubscriptions":0}}))
             ws.recv()
             _obs_ws = ws
+            _obs_connected = True
             return ws, None
         except Exception as e:
+            _obs_connected = False
             return None, str(e)
 
 def obs_request(request_type, data=None):
+    global _obs_ws, _obs_connected
     ws, err = obs_connect()
-    if err: return False, err
+    if err:
+        _obs_connected = False
+        return False, err
     try:
         import uuid
         rid = str(uuid.uuid4())[:8]
@@ -179,10 +193,14 @@ def obs_request(request_type, data=None):
             ws.send(json.dumps(payload))
             resp = json.loads(ws.recv())
         res = resp.get("d",{}).get("requestStatus",{})
-        if res.get("result"): return True, resp.get("d",{}).get("responseData",{})
+        if res.get("result"):
+            _obs_connected = True
+            return True, resp.get("d",{}).get("responseData",{})
         return False, res.get("comment","OBS error")
     except Exception as e:
-        global _obs_ws; _obs_ws = None; return False, str(e)
+        _obs_ws = None
+        _obs_connected = False
+        return False, str(e)
 
 def handle_obs(data):
     cmd = data.get("command","")
@@ -200,18 +218,17 @@ def handle_obs(data):
 # ─────────────────────────────────────────────────────────────────────────────
 # TWITCH
 # ─────────────────────────────────────────────────────────────────────────────
-_twitch_access_token  = ""
-_twitch_refresh_token = ""
 _twitch_user_id       = ""
 _twitch_username      = ""
 
 def _twitch_api(method, path, body=None):
-    global _twitch_access_token
-    if not _twitch_access_token:
-        return False, "Not logged in to Twitch"
+    token = _cfg.get("twitch_access_token", "")
+    if not token:
+        return False, "No Twitch token set in Settings"
+    
     url     = f"https://api.twitch.tv/helix{path}"
     headers = {
-        "Authorization": f"Bearer {_twitch_access_token}",
+        "Authorization": f"Bearer {token}",
         "Client-Id":     _cfg["twitch_client_id"],
         "Content-Type":  "application/json",
     }
@@ -221,65 +238,11 @@ def _twitch_api(method, path, body=None):
         with urllib.request.urlopen(req, timeout=8) as r:
             return True, json.loads(r.read())
     except urllib.error.HTTPError as e:
-        if e.code == 401:
-            if _twitch_refresh():
-                headers["Authorization"] = f"Bearer {_twitch_access_token}"
-                req2 = urllib.request.Request(url, data=data, headers=headers, method=method)
-                try:
-                    with urllib.request.urlopen(req2, timeout=8) as r2:
-                        return True, json.loads(r2.read())
-                except Exception as e2:
-                    return False, str(e2)
-            return False, "Token expired - please log in again from Settings"
+        # We won't auto-refresh for manual tokens as we don't have a secret/refresh token usually
         try:   return False, json.loads(e.read()).get("message", str(e))
         except: return False, str(e)
     except Exception as e:
         return False, str(e)
-
-def _twitch_refresh():
-    global _twitch_access_token, _twitch_refresh_token
-    if not _twitch_refresh_token: return False
-    try:
-        params = urllib.parse.urlencode({
-            "grant_type":    "refresh_token",
-            "refresh_token": _twitch_refresh_token,
-            "client_id":     _cfg["twitch_client_id"],
-        }).encode()
-        req = urllib.request.Request("https://id.twitch.tv/oauth2/token", data=params, method="POST")
-        with urllib.request.urlopen(req, timeout=8) as r:
-            d = json.loads(r.read())
-        _twitch_access_token  = d["access_token"]
-        _twitch_refresh_token = d["refresh_token"]
-        _save_twitch_tokens()
-        log("Twitch token refreshed automatically")
-        return True
-    except Exception as e:
-        log(f"Twitch token refresh failed: {e}")
-        return False
-
-def _save_twitch_tokens():
-    try:
-        _TOKEN_FILE.write_text(json.dumps({
-            "access_token":  _twitch_access_token,
-            "refresh_token": _twitch_refresh_token,
-            "user_id":       _twitch_user_id,
-            "username":      _twitch_username,
-        }))
-    except Exception as e:
-        log(f"Could not save Twitch tokens: {e}")
-
-def _load_twitch_tokens():
-    global _twitch_access_token, _twitch_refresh_token, _twitch_user_id, _twitch_username
-    if not _TOKEN_FILE.exists(): return False
-    try:
-        d = json.loads(_TOKEN_FILE.read_text())
-        _twitch_access_token  = d.get("access_token",  "")
-        _twitch_refresh_token = d.get("refresh_token", "")
-        _twitch_user_id       = d.get("user_id",       "")
-        _twitch_username      = d.get("username",       "")
-        return bool(_twitch_access_token)
-    except Exception:
-        return False
 
 def _fetch_twitch_user():
     global _twitch_user_id, _twitch_username
@@ -287,17 +250,20 @@ def _fetch_twitch_user():
     if ok and resp.get("data"):
         _twitch_user_id  = resp["data"][0]["id"]
         _twitch_username = resp["data"][0]["login"]
-        _save_twitch_tokens()
         return True
     return False
 
 def handle_twitch(data):
     cmd  = data.get("command", "")
     if cmd == "marker":
+        token = _cfg.get("twitch_access_token", "")
+        if not token:
+            return False, "No Twitch token set in Settings"
+        
         if not _twitch_user_id:
-            if _twitch_access_token: _fetch_twitch_user()
+            _fetch_twitch_user()
             if not _twitch_user_id:
-                return False, "Not logged in to Twitch - open Settings to log in"
+                return False, "Could not fetch Twitch user ID - check your token"
         
         desc = data.get("description", "")
         ok, resp = _twitch_api("POST", f"/streams/markers?user_id={_twitch_user_id}&description={urllib.parse.quote(desc)}")
@@ -306,75 +272,6 @@ def handle_twitch(data):
             return True, f"Marker at {pos}s" + (f" - {desc}" if desc else "")
         return False, resp
     return False, f"Unknown Twitch command: {cmd}"
-
-# Twitch Device Code Flow - called from Settings GUI
-def twitch_login(on_done):
-    """
-    1. Get device code
-    2. Show URL + Code to user
-    3. Poll for token
-    """
-    def _run():
-        if not _cfg["twitch_client_id"]:
-            on_done(False, "No Client ID - fill in the Twitch Client ID field first")
-            return
-
-        try:
-            # Step 1: Request Device Code
-            params = urllib.parse.urlencode({
-                "client_id": _cfg["twitch_client_id"],
-                "scopes":    "channel:manage:broadcast",
-            }).encode()
-            req = urllib.request.Request("https://id.twitch.tv/oauth2/device", data=params, method="POST")
-            with urllib.request.urlopen(req, timeout=8) as r:
-                d = json.loads(r.read())
-            
-            # Step 2: Inform user
-            # We open the URL automatically for them, but they still need the code
-            import webbrowser
-            webbrowser.open(d["verification_uri"])
-            
-            # Use a message box that doesn't block polling
-            messagebox.showinfo("Twitch Login", f"A browser window has opened.\n\nPlease enter this code to authorize:\n\n {d['user_code']}")
-
-            # Step 3: Poll
-            interval = d.get("interval", 5)
-            expires  = time.time() + d.get("expires_in", 300)
-            device_code = d["device_code"]
-
-            while time.time() < expires:
-                time.sleep(interval)
-                poll_params = urllib.parse.urlencode({
-                    "client_id":   _cfg["twitch_client_id"],
-                    "scopes":      "channel:manage:broadcast",
-                    "device_code": device_code,
-                    "grant_type":  "urn:ietf:params:oauth:grant-type:device_code",
-                }).encode()
-                
-                try:
-                    req_poll = urllib.request.Request("https://id.twitch.tv/oauth2/token", data=poll_params, method="POST")
-                    with urllib.request.urlopen(req_poll, timeout=8) as r_poll:
-                        token_data = json.loads(r_poll.read())
-                    
-                    global _twitch_access_token, _twitch_refresh_token
-                    _twitch_access_token  = token_data["access_token"]
-                    _twitch_refresh_token = token_data["refresh_token"]
-                    _fetch_twitch_user()
-                    on_done(True, f"Logged in as {_twitch_username}")
-                    return
-                except urllib.error.HTTPError as e_poll:
-                    err_body = json.loads(e_poll.read())
-                    if err_body.get("message") == "authorization_pending":
-                        continue
-                    else:
-                        on_done(False, err_body.get("message", "Login failed"))
-                        return
-
-            on_done(False, "Login timed out - please try again")
-        except Exception as e:
-            on_done(False, str(e))
-
-    threading.Thread(target=_run, daemon=True).start()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HTTP SERVER
@@ -413,7 +310,7 @@ class Handler(BaseHTTPRequestHandler):
                 "status":  "ok",
                 "server":  "Streamer Tablet Helper",
                 "obs":     bool(_cfg["obs_password"]),
-                "twitch":  bool(_twitch_access_token),
+                "twitch":  bool(_cfg.get("twitch_access_token")),
             })
         else:
             self.send_json(404, {"error": "Not found"})
@@ -512,19 +409,29 @@ C_MUTED   = "#555e7a"
 C_TEXT    = "#cdd6f4"
 C_TWITCH  = "#9146ff"
 
-class App(tk.Tk):
+class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Streamer Tablet Helper")
-        self.configure(bg=C_BG)
+        self.geometry("560x680")
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        # Try to set a taskbar/title-bar icon from the bundled icon if present
-        icon_path = _BASE / "icon.ico"
-        if icon_path.exists():
-            try: self.iconbitmap(str(icon_path))
-            except Exception: pass
+        # Try to set a taskbar/title-bar icon
+        try:
+            icon_png = _BASE / "Streamer Tablet Helper.png"
+            if icon_png.exists():
+                from PIL import Image, ImageTk
+                img = Image.open(str(icon_png))
+                photo = ImageTk.PhotoImage(img)
+                self.wm_iconphoto(True, photo)
+            else:
+                # Fallback to icon.ico if present
+                icon_path = _BASE / "icon.ico"
+                if icon_path.exists():
+                    self.iconbitmap(str(icon_path))
+        except Exception as e:
+            print(f"Could not set icon: {e}")
 
         self._server_thread = None
         self._httpd         = None
@@ -543,51 +450,50 @@ class App(tk.Tk):
 
     # ── UI BUILD ─────────────────────────────────────────────────────────────
     def _build_ui(self):
-        self.geometry("560x640")
-
         # ── Header ──
-        hdr = tk.Frame(self, bg=C_SURFACE, height=60)
+        hdr = ctk.CTkFrame(self, height=60, corner_radius=0)
         hdr.pack(fill="x")
         hdr.pack_propagate(False)
-        tk.Label(hdr, text="🎮  Streamer Tablet Helper", font=("Segoe UI", 14, "bold"),
-                 bg=C_SURFACE, fg=C_ACCENT).pack(side="left", padx=16, pady=14)
-
-        sep = tk.Frame(self, bg=C_BORDER, height=1); sep.pack(fill="x")
+        ctk.CTkLabel(hdr, text="🎮  Streamer Tablet Helper", font=("Segoe UI", 20, "bold"),
+                    text_color=C_ACCENT).pack(side="left", padx=16, pady=14)
 
         # ── Status cards ──
-        cards = tk.Frame(self, bg=C_BG, padx=12, pady=10)
-        cards.pack(fill="x")
+        cards = ctk.CTkFrame(self, fg_color="transparent")
+        cards.pack(fill="x", padx=12, pady=10)
 
         # IP card
         ip_card = self._card(cards, "YOUR PC IP - enter this in the app")
         
-        self._lbl_ip_warning = tk.Label(ip_card, text="⚠️  WARNING: Do NOT show this on stream!", 
-                                         font=("Segoe UI", 9, "bold"), bg=C_SURFACE, fg=C_RED)
+        self._lbl_ip_warning = ctk.CTkLabel(ip_card, text="⚠️  WARNING: Do NOT show this on stream!", 
+                                         font=("Segoe UI", 12, "bold"), text_color=C_RED)
         self._lbl_ip_warning.pack(pady=(0, 6))
 
-        self._lbl_ip = tk.Label(ip_card, text="• • • • • • • • •", font=("Courier New", 22, "bold"),
-                                bg=C_SURFACE, fg=C_MUTED)
+        self._lbl_ip = ctk.CTkLabel(ip_card, text="• • • • • • • • •", font=("Courier New", 28, "bold"),
+                                text_color=C_MUTED)
         self._lbl_ip.pack(pady=(0, 4))
 
-        btn_row = tk.Frame(ip_card, bg=C_SURFACE)
+        btn_row = ctk.CTkFrame(ip_card, fg_color="transparent")
         btn_row.pack()
         
-        self._btn_ip_toggle = tk.Button(btn_row, text="👁️ Show IP", font=("Segoe UI", 9), bg=C_BORDER, fg=C_TEXT,
-                  relief="flat", cursor="hand2", padx=8, pady=3,
-                  command=self._toggle_ip)
+        self._btn_ip_toggle = ctk.CTkButton(btn_row, text="👁️ Show IP", font=("Segoe UI", 12),
+                                         fg_color=C_BORDER, text_color=C_TEXT,
+                                         hover_color=C_SURFACE, height=28, width=100,
+                                         command=self._toggle_ip)
         self._btn_ip_toggle.pack(side="left", padx=4)
         
-        tk.Button(btn_row, text="📋 Copy", font=("Segoe UI", 9), bg=C_BORDER, fg=C_TEXT,
-                  relief="flat", cursor="hand2", padx=8, pady=3,
-                  command=lambda: self._copy(self._ip)).pack(side="left", padx=4)
+        ctk.CTkButton(btn_row, text="📋 Copy", font=("Segoe UI", 12),
+                   fg_color=C_BORDER, text_color=C_TEXT,
+                   hover_color=C_SURFACE, height=28, width=100,
+                   command=lambda: self._copy(self._ip)).pack(side="left", padx=4)
         
-        tk.Button(btn_row, text="🔄 Refresh", font=("Segoe UI", 9), bg=C_BORDER, fg=C_TEXT,
-                  relief="flat", cursor="hand2", padx=8, pady=3,
-                  command=self._refresh_ip).pack(side="left", padx=4)
+        ctk.CTkButton(btn_row, text="🔄 Refresh", font=("Segoe UI", 12),
+                   fg_color=C_BORDER, text_color=C_TEXT,
+                   hover_color=C_SURFACE, height=28, width=100,
+                   command=self._refresh_ip).pack(side="left", padx=4)
         
         # Feature status row
-        status_row = tk.Frame(self, bg=C_BG, padx=12)
-        status_row.pack(fill="x")
+        status_row = ctk.CTkFrame(self, fg_color="transparent")
+        status_row.pack(fill="x", padx=12)
 
         self._dot_server = self._status_dot(status_row, "Server",  C_MUTED)
         self._dot_obs    = self._status_dot(status_row, "OBS",     C_MUTED)
@@ -595,69 +501,57 @@ class App(tk.Tk):
         self._dot_keys   = self._status_dot(status_row, "Keys",    C_MUTED)
 
         # Devices connected
-        self._lbl_devices = tk.Label(status_row, text="0 devices",
-                                     font=("Segoe UI", 9), bg=C_BG, fg=C_MUTED)
+        self._lbl_devices = ctk.CTkLabel(status_row, text="0 devices",
+                                     font=("Segoe UI", 11), text_color=C_MUTED)
         self._lbl_devices.pack(side="right", padx=4)
 
-        sep2 = tk.Frame(self, bg=C_BORDER, height=1)
-        sep2.pack(fill="x", pady=8)
-
         # ── Notebook tabs ──
-        style = ttk.Style(self)
-        style.theme_use("default")
-        style.configure("TNotebook",           background=C_BG,      borderwidth=0)
-        style.configure("TNotebook.Tab",       background=C_SURFACE, foreground=C_MUTED,
-                        padding=[14, 6], font=("Segoe UI", 10))
-        style.map("TNotebook.Tab",
-                  background=[("selected", C_BG)],
-                  foreground=[("selected", C_ACCENT)])
+        self.nb = ctk.CTkTabview(self, anchor="nw")
+        self.nb.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        
+        self.tab_log = self.nb.add("Activity Log")
+        self.tab_settings = self.nb.add("Settings")
 
-        nb = ttk.Notebook(self)
-        nb.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        self._build_log_tab(self.tab_log)
+        self._build_settings_tab(self.tab_settings)
 
-        self._build_log_tab(nb)
-        self._build_settings_tab(nb)
-
-    def _card(self, parent, title: str) -> tk.Frame:
-        wrapper = tk.Frame(parent, bg=C_BG)
+    def _card(self, parent, title: str) -> ctk.CTkFrame:
+        wrapper = ctk.CTkFrame(parent, fg_color="transparent")
         wrapper.pack(fill="x", pady=(0, 8))
-        tk.Label(wrapper, text=title.upper(), font=("Segoe UI", 8), bg=C_BG,
-                 fg=C_MUTED, anchor="w").pack(fill="x", pady=(0, 4))
-        inner = tk.Frame(wrapper, bg=C_SURFACE, padx=16, pady=12)
-        inner.pack(fill="x")
+        ctk.CTkLabel(wrapper, text=title.upper(), font=("Segoe UI", 10, "bold"),
+                 text_color=C_MUTED, anchor="w").pack(fill="x", pady=(0, 4))
+        inner = ctk.CTkFrame(wrapper, corner_radius=10, fg_color=C_SURFACE)
+        inner.pack(fill="x", padx=2, pady=2)
         return inner
 
-    def _status_dot(self, parent, label: str, color: str) -> tk.Label:
-        f = tk.Frame(parent, bg=C_BG)
+    def _status_dot(self, parent, label: str, color: str) -> ctk.CTkLabel:
+        f = ctk.CTkFrame(parent, fg_color="transparent")
         f.pack(side="left", padx=(0, 12))
-        dot = tk.Label(f, text="⬤", font=("Segoe UI", 10), bg=C_BG, fg=color)
+        dot = ctk.CTkLabel(f, text="⬤", font=("Segoe UI", 12), text_color=color)
         dot.pack(side="left")
-        tk.Label(f, text=label, font=("Segoe UI", 9), bg=C_BG, fg=C_MUTED).pack(side="left", padx=(3,0))
+        ctk.CTkLabel(f, text=label, font=("Segoe UI", 11), text_color=C_MUTED).pack(side="left", padx=(3,0))
         return dot
 
     # ── LOG TAB ──────────────────────────────────────────────────────────────
-    def _build_log_tab(self, nb):
-        frame = tk.Frame(nb, bg=C_BG)
-        nb.add(frame, text="  Activity Log  ")
-
-        self._log_box = scrolledtext.ScrolledText(
-            frame, bg=C_SURFACE, fg=C_TEXT,
-            font=("Courier New", 9), relief="flat",
-            state="disabled", wrap="word", height=18,
-            insertbackground=C_TEXT,
-        )
-        self._log_box.pack(fill="both", expand=True, padx=0, pady=0)
-        self._log_box.tag_config("ok",  foreground=C_GREEN)
-        self._log_box.tag_config("err", foreground=C_RED)
-        self._log_box.tag_config("dim", foreground=C_MUTED)
-
-        btn_row = tk.Frame(frame, bg=C_BG)
-        btn_row.pack(fill="x", pady=6)
-        tk.Button(btn_row, text="Clear log", font=("Segoe UI", 9), bg=C_BORDER, fg=C_TEXT,
-                  relief="flat", cursor="hand2", padx=8, pady=3,
-                  command=self._clear_log).pack(side="right")
-
+    def _build_log_tab(self, frame):
         global _log_cb
+        self._log_box = ctk.CTkTextbox(
+            frame, fg_color=C_SURFACE, text_color=C_TEXT,
+            font=("Courier New", 12), corner_radius=8,
+            wrap="word",
+        )
+        self._log_box.pack(fill="both", expand=True, padx=0, pady=(0, 6))
+        
+        # ScrolledText tags equivalent for CustomTkinter Textbox is tricky as it doesn't support them directly.
+        # We will simplify by using normal text for now.
+
+        btn_row = ctk.CTkFrame(frame, fg_color="transparent")
+        btn_row.pack(fill="x", pady=6)
+        ctk.CTkButton(btn_row, text="Clear log", font=("Segoe UI", 12),
+                   fg_color=C_BORDER, text_color=C_TEXT,
+                   hover_color=C_SURFACE, height=32, width=120,
+                   command=self._clear_log).pack(side="right")
+
         _log_cb = self._append_log
 
         # Replay buffered lines from before the window was ready
@@ -667,52 +561,40 @@ class App(tk.Tk):
 
     def _append_log(self, line: str):
         def _do():
-            self._log_box.configure(state="normal")
-            tag = "ok" if "✓" in line else ("err" if "✗" in line else "dim")
-            self._log_box.insert("end", line + "\n", tag)
+            # For CTkTextbox, we just insert. It doesn't have a disabled/enabled state like tk.Text.
+            self._log_box.insert("end", line + "\n")
             self._log_box.see("end")
-            self._log_box.configure(state="disabled")
         self.after(0, _do)
 
     def _clear_log(self):
         with _log_lock:
             _log_lines.clear()
-        self._log_box.configure(state="normal")
         self._log_box.delete("1.0", "end")
-        self._log_box.configure(state="disabled")
 
     # ── SETTINGS TAB ─────────────────────────────────────────────────────────
-    def _build_settings_tab(self, nb):
-        outer = tk.Frame(nb, bg=C_BG)
-        nb.add(outer, text="  Settings  ")
-
-        canvas = tk.Canvas(outer, bg=C_BG, highlightthickness=0)
-        sb     = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        frame  = tk.Frame(canvas, bg=C_BG)
-
-        frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=frame, anchor="nw")
-        canvas.configure(yscrollcommand=sb.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        sb.pack(side="right", fill="y")
+    def _build_settings_tab(self, frame):
+        # We can use CTkScrollableFrame for settings
+        scroll_frame = ctk.CTkScrollableFrame(frame, fg_color="transparent")
+        scroll_frame.pack(fill="both", expand=True)
 
         def _section(text):
-            tk.Label(frame, text=text, font=("Segoe UI", 9, "bold"),
-                     bg=C_BG, fg=C_ACCENT).pack(anchor="w", pady=(18, 4), padx=2)
-            tk.Frame(frame, bg=C_BORDER, height=1).pack(fill="x", pady=(0, 8))
+            ctk.CTkLabel(scroll_frame, text=text, font=("Segoe UI", 12, "bold"),
+                     text_color=C_ACCENT).pack(anchor="w", pady=(18, 4), padx=2)
+            # Divider
+            ctk.CTkFrame(scroll_frame, height=2, fg_color=C_BORDER).pack(fill="x", pady=(0, 8))
 
         def _row(label, widget_fn):
-            r = tk.Frame(frame, bg=C_BG)
-            r.pack(fill="x", pady=3)
-            tk.Label(r, text=label, font=("Segoe UI", 10), bg=C_BG, fg=C_TEXT,
-                     width=20, anchor="w").pack(side="left")
+            r = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            r.pack(fill="x", pady=5)
+            ctk.CTkLabel(r, text=label, font=("Segoe UI", 12), text_color=C_TEXT,
+                     width=140, anchor="w").pack(side="left")
             widget_fn(r)
             return r
 
         def _entry(parent, value="", **kw):
-            e = tk.Entry(parent, bg=C_SURFACE, fg=C_TEXT, insertbackground=C_TEXT,
-                         relief="flat", font=("Segoe UI", 10), **kw)
-            e.pack(side="left", fill="x", expand=True, ipady=5, padx=(0, 4))
+            e = ctk.CTkEntry(parent, fg_color=C_SURFACE, text_color=C_TEXT,
+                         border_color=C_BORDER, font=("Segoe UI", 12), **kw)
+            e.pack(side="left", fill="x", expand=True, padx=(0, 4))
             return e
 
         # ── OBS ──────────────────────────────────────────────────────────────
@@ -726,19 +608,19 @@ class App(tk.Tk):
         _row("Host", lambda p: _entry(p, _cfg["obs_host"], textvariable=self._obs_host_var))
 
         self._obs_port_var = tk.StringVar(value=str(_cfg["obs_port"]))
-        _row("Port", lambda p: _entry(p, str(_cfg["obs_port"]), textvariable=self._obs_port_var, width=8))
+        _row("Port", lambda p: _entry(p, str(_cfg["obs_port"]), textvariable=self._obs_port_var, width=80))
 
-        tk.Label(frame, text="Enable in OBS → Tools → WebSocket Server Settings",
-                 font=("Segoe UI", 8), bg=C_BG, fg=C_MUTED).pack(anchor="w", padx=2, pady=(0, 4))
+        ctk.CTkLabel(scroll_frame, text="Enable in OBS → Tools → WebSocket Server Settings",
+                 font=("Segoe UI", 11), text_color=C_MUTED).pack(anchor="w", padx=2, pady=(0, 4))
 
-        obs_btn_row = tk.Frame(frame, bg=C_BG)
+        obs_btn_row = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         obs_btn_row.pack(anchor="w", pady=(0, 4))
-        tk.Button(obs_btn_row, text="Save OBS Settings", font=("Segoe UI", 9),
-                  bg=C_ACCENT, fg="#000", relief="flat", cursor="hand2",
-                  padx=10, pady=4, command=self._save_obs).pack(side="left", padx=(0, 8))
-        tk.Button(obs_btn_row, text="Test Connection", font=("Segoe UI", 9),
-                  bg=C_BORDER, fg=C_TEXT, relief="flat", cursor="hand2",
-                  padx=10, pady=4, command=self._test_obs).pack(side="left")
+        ctk.CTkButton(obs_btn_row, text="Save OBS Settings", font=("Segoe UI", 12, "bold"),
+                  fg_color=C_ACCENT, text_color="#000", hover_color="#00b8cc",
+                  height=36, command=self._save_obs).pack(side="left", padx=(0, 8))
+        ctk.CTkButton(obs_btn_row, text="Test Connection", font=("Segoe UI", 12),
+                  fg_color=C_BORDER, text_color=C_TEXT, hover_color=C_SURFACE,
+                  height=36, command=self._test_obs).pack(side="left")
 
         # ── TWITCH ───────────────────────────────────────────────────────────
         _section("TWITCH - STREAM MARKERS")
@@ -747,62 +629,67 @@ class App(tk.Tk):
         _row("Client ID", lambda p: _entry(p, _cfg["twitch_client_id"],
                                            textvariable=self._twitch_id_var))
 
-        tk.Label(frame,
-                 text="Get a free Client ID at dev.twitch.tv/console\n"
-                      "Create app → type Public → redirect http://localhost → copy Client ID",
-                 font=("Segoe UI", 8), bg=C_BG, fg=C_MUTED, justify="left"
+        self._twitch_token_var = tk.StringVar(value=_cfg["twitch_access_token"])
+        _row("OAuth Token", lambda p: _entry(p, _cfg["twitch_access_token"],
+                                           textvariable=self._twitch_token_var, show="●"))
+
+        ctk.CTkLabel(scroll_frame,
+                 text="1. Visit twitchtokengenerator.com\n"
+                      "2. Scroll down to 'Scopes' and check 'channel:manage:broadcast'\n"
+                      "3. Click 'Generate Token' and authorize Twitch\n"
+                      "4. Copy 'Access Token' and 'Client ID' into the fields above.",
+                 font=("Segoe UI", 11), text_color=C_MUTED, justify="left"
                  ).pack(anchor="w", padx=2, pady=(0, 6))
 
-        self._lbl_twitch_status = tk.Label(frame, text="Not logged in",
-                                           font=("Segoe UI", 9), bg=C_BG, fg=C_MUTED)
+        self._lbl_twitch_status = ctk.CTkLabel(scroll_frame, text="Checking status...",
+                                           font=("Segoe UI", 12), text_color=C_MUTED)
         self._lbl_twitch_status.pack(anchor="w", padx=2, pady=(0, 6))
-        self._update_twitch_label()
 
-        twitch_btn_row = tk.Frame(frame, bg=C_BG)
+        twitch_btn_row = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         twitch_btn_row.pack(anchor="w", pady=(0, 4))
-        self._btn_twitch_login = tk.Button(
-            twitch_btn_row, text="🟣 Log in with Twitch", font=("Segoe UI", 9),
-            bg=C_TWITCH, fg="#fff", relief="flat", cursor="hand2",
-            padx=10, pady=4, command=self._twitch_login_flow)
-        self._btn_twitch_login.pack(side="left", padx=(0, 8))
-        tk.Button(twitch_btn_row, text="Log out", font=("Segoe UI", 9),
-                  bg=C_BORDER, fg=C_TEXT, relief="flat", cursor="hand2",
-                  padx=10, pady=4, command=self._twitch_logout).pack(side="left")
+        
+        ctk.CTkButton(twitch_btn_row, text="🌐 Open Token Generator", font=("Segoe UI", 12, "bold"),
+                  fg_color=C_TWITCH, text_color="#fff", hover_color="#772ce8",
+                  height=36, command=lambda: webbrowser.open("https://twitchtokengenerator.com/")).pack(side="left", padx=(0, 8))
+        
+        ctk.CTkButton(twitch_btn_row, text="💾 Save & Test Twitch", font=("Segoe UI", 12),
+                  fg_color=C_ACCENT, text_color="#000", hover_color="#00b8cc",
+                  height=36, command=self._save_twitch_manual).pack(side="left")
 
         # Twitch login status label (shown during auth)
-        self._lbl_twitch_auth = tk.Label(frame, text="", font=("Segoe UI", 9),
-                                         bg=C_BG, fg=C_MUTED, wraplength=480, justify="left")
+        self._lbl_twitch_auth = ctk.CTkLabel(scroll_frame, text="", font=("Segoe UI", 11),
+                                         text_color=C_MUTED, wraplength=480, justify="left")
         self._lbl_twitch_auth.pack(anchor="w", padx=2, pady=(0, 4))
+        self._update_twitch_label()
 
         # ── GENERAL ──────────────────────────────────────────────────────────
         _section("GENERAL")
 
         self._autostart_var = tk.BooleanVar(value=get_autostart())
-        autostart_row = tk.Frame(frame, bg=C_BG)
+        autostart_row = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         autostart_row.pack(anchor="w", pady=3)
-        tk.Checkbutton(autostart_row, text="Start with Windows",
+        ctk.CTkCheckBox(autostart_row, text="Start with Windows",
                        variable=self._autostart_var,
-                       bg=C_BG, fg=C_TEXT, selectcolor=C_SURFACE,
-                       activebackground=C_BG, activeforeground=C_TEXT,
-                       font=("Segoe UI", 10), cursor="hand2",
+                       font=("Segoe UI", 13),
                        command=lambda: set_autostart(self._autostart_var.get())
                        ).pack(side="left")
         if sys.platform != "win32":
-            tk.Label(autostart_row, text="(Windows only)", font=("Segoe UI", 8),
-                     bg=C_BG, fg=C_MUTED).pack(side="left", padx=6)
+            ctk.CTkLabel(autostart_row, text="(Windows only)", font=("Segoe UI", 11),
+                     text_color=C_MUTED).pack(side="left", padx=6)
 
-        tk.Button(frame, text="Minimise to Tray", font=("Segoe UI", 9),
-                  bg=C_BORDER, fg=C_TEXT, relief="flat", cursor="hand2",
-                  padx=10, pady=4, command=self._minimise_to_tray
-                  ).pack(anchor="w", pady=(8, 0))
+        ctk.CTkButton(scroll_frame, text="Minimise to Tray", font=("Segoe UI", 12),
+                  fg_color=C_BORDER, text_color=C_TEXT, hover_color=C_SURFACE,
+                  height=36, command=self._minimise_to_tray
+                  ).pack(anchor="w", pady=(12, 0))
 
     # ── OBS ACTIONS ──────────────────────────────────────────────────────────
     def _save_obs(self):
+        global _obs_ws
         _cfg["obs_password"] = self._obs_pw_var.get().strip()
         _cfg["obs_host"]     = self._obs_host_var.get().strip() or "localhost"
         try:   _cfg["obs_port"] = int(self._obs_port_var.get().strip())
         except: _cfg["obs_port"] = 4455
-        global _obs_ws; _obs_ws = None   # force reconnect
+        _obs_ws = None   # force reconnect
         save_config()
         log("OBS settings saved")
         messagebox.showinfo("Saved", "OBS settings saved.", parent=self)
@@ -815,56 +702,41 @@ class App(tk.Tk):
                 log(f"OBS connected  ✓  version {ver}")
                 self.after(0, lambda: messagebox.showinfo("OBS", f"Connected!\nOBS version: {ver}", parent=self))
             else:
+                msg = str(resp)
+                if "10061" in msg:
+                    msg = "Connection Refused.\n\nPossible causes:\n1. OBS is not open.\n2. WebSocket Server is not enabled in OBS (Tools -> WebSocket Server Settings).\n3. Port 4455 is blocked or wrong."
                 log(f"OBS test failed: {resp}")
-                self.after(0, lambda: messagebox.showerror("OBS", f"Could not connect:\n{resp}", parent=self))
+                self.after(0, lambda: messagebox.showerror("OBS", f"Could not connect:\n{msg}", parent=self))
         threading.Thread(target=_run, daemon=True).start()
 
     # ── TWITCH ACTIONS ───────────────────────────────────────────────────────
-    def _update_twitch_label(self):
-        if _twitch_username:
-            self._lbl_twitch_status.config(
-                text=f"✓  Logged in as  {_twitch_username}", fg=C_TWITCH)
-        elif _twitch_access_token:
-            self._lbl_twitch_status.config(text="✓  Logged in", fg=C_TWITCH)
-        else:
-            self._lbl_twitch_status.config(text="Not logged in", fg=C_MUTED)
-
-    def _twitch_login_flow(self):
-        # Save client ID first
-        _cfg["twitch_client_id"] = self._twitch_id_var.get().strip()
+    def _save_twitch_manual(self):
+        _cfg["twitch_client_id"]     = self._twitch_id_var.get().strip()
+        _cfg["twitch_access_token"] = self._twitch_token_var.get().strip()
         save_config()
+        log("Twitch settings saved")
+        self._lbl_twitch_status.configure(text="Validating...", text_color=C_MUTED)
+        self._validate_twitch_token()
 
-        self._btn_twitch_login.config(state="disabled")
-        self._lbl_twitch_auth.config(text="Starting login…", fg=C_MUTED)
+    def _update_twitch_label(self):
+        token = _cfg.get("twitch_access_token", "")
+        if _twitch_username:
+            self._lbl_twitch_status.configure(
+                text=f"✓  Logged in as  {_twitch_username}", text_color=C_TWITCH)
+        elif token:
+            self._lbl_twitch_status.configure(text="✓  Token set", text_color=C_TWITCH)
+        else:
+            self._lbl_twitch_status.configure(text="Not logged in", text_color=C_MUTED)
 
-        def on_url(url, code):
-            self.after(0, lambda: self._lbl_twitch_auth.config(
-                text=f"1. Your browser should open automatically.\n"
-                     f"2. If not, visit: {url}\n"
-                     f"3. Enter code: {code}\n"
-                     f"4. Waiting for you to approve…",
-                fg=C_TEXT))
-
-        def on_done(ok, msg):
-            def _ui():
-                self._btn_twitch_login.config(state="normal")
-                self._lbl_twitch_auth.config(text="")
-                self._update_twitch_label()
-                if ok:
-                    log(f"Twitch login successful: {msg}")
-                    messagebox.showinfo("Twitch", f"✓  {msg}", parent=self)
-                else:
-                    log(f"Twitch login failed: {msg}")
-                    messagebox.showerror("Twitch", f"Login failed:\n{msg}", parent=self)
-            self.after(0, _ui)
-
-        twitch_login_device_flow(on_url, on_done)
+    # ── TWITCH ACTIONS (DEPRECATED) ──────────────────────────────────────────
+    def _twitch_login_flow(self):
+        pass
 
     def _twitch_logout(self):
-        global _twitch_access_token, _twitch_refresh_token, _twitch_user_id, _twitch_username
-        _twitch_access_token = _twitch_refresh_token = _twitch_user_id = _twitch_username = ""
-        try: _TOKEN_FILE.unlink()
-        except Exception: pass
+        global _twitch_username, _twitch_user_id
+        _cfg["twitch_access_token"] = ""
+        save_config()
+        _twitch_username = _twitch_user_id = ""
         self._update_twitch_label()
         log("Twitch logged out")
 
@@ -882,53 +754,49 @@ class App(tk.Tk):
 
     # ── TWITCH TOKEN VALIDATION on startup ───────────────────────────────────
     def _validate_twitch_token(self):
-        if not _twitch_access_token: return
+        token = _cfg.get("twitch_access_token", "")
+        if not token: return
         def _run():
+            global _twitch_user_id, _twitch_username
             try:
                 req = urllib.request.Request(
                     "https://id.twitch.tv/oauth2/validate",
-                    headers={"Authorization": f"OAuth {_twitch_access_token}"})
+                    headers={"Authorization": f"OAuth {token}"})
                 with urllib.request.urlopen(req, timeout=5) as r:
                     vdata = json.loads(r.read())
-                global _twitch_user_id, _twitch_username
-                _twitch_user_id  = vdata.get("user_id",  _twitch_user_id)
-                _twitch_username = vdata.get("login",    _twitch_username)
-                _save_twitch_tokens()
+                _twitch_user_id  = vdata.get("user_id",  "")
+                _twitch_username = vdata.get("login",    "")
                 log(f"Twitch ready - logged in as {_twitch_username}")
                 self.after(0, self._update_twitch_label)
-            except urllib.error.HTTPError as e:
-                if e.code == 401:
-                    log("Twitch token expired, refreshing...")
-                    if _twitch_refresh():
-                        log("Twitch token refreshed")
-                        self.after(0, self._update_twitch_label)
-                    else:
-                        log("Twitch token invalid - please log in again from Settings")
+            except Exception as e:
+                log(f"Twitch token validation failed: {e}")
+                _twitch_username = ""
+                self.after(0, self._update_twitch_label)
         threading.Thread(target=_run, daemon=True).start()
 
     # ── PERIODIC TICK ────────────────────────────────────────────────────────
     def _tick(self):
         # Update status dots
         server_ok = self._httpd is not None
-        self._dot_server.config(fg=C_GREEN if server_ok else C_RED)
+        self._dot_server.configure(text_color=C_GREEN if server_ok else C_RED)
 
-        obs_ok = _cfg.get("obs_password", "") != ""
-        self._dot_obs.config(fg=C_GREEN if obs_ok else C_MUTED)
+        # OBS status - use the tracked connection state
+        self._dot_obs.configure(text_color=C_GREEN if _obs_connected else C_MUTED)
 
-        twitch_ok = bool(_twitch_access_token)
-        self._dot_twitch.config(fg=C_TWITCH if twitch_ok else C_MUTED)
+        twitch_ok = bool(_cfg.get("twitch_access_token"))
+        self._dot_twitch.configure(text_color=C_TWITCH if twitch_ok else C_MUTED)
 
         try:
             import pyautogui
-            self._dot_keys.config(fg=C_GREEN)
+            self._dot_keys.configure(text_color=C_GREEN)
         except ImportError:
-            self._dot_keys.config(fg=C_MUTED)
+            self._dot_keys.configure(text_color=C_MUTED)
 
         with _clients_lock:
             n = len(_connected_clients)
-        self._lbl_devices.config(
+        self._lbl_devices.configure(
             text=f"{n} device{'s' if n != 1 else ''} seen",
-            fg=C_GREEN if n > 0 else C_MUTED)
+            text_color=C_GREEN if n > 0 else C_MUTED)
 
         self.after(2000, self._tick)
 
@@ -941,16 +809,16 @@ class App(tk.Tk):
     def _toggle_ip(self):
         self._ip_hidden = not self._ip_hidden
         if self._ip_hidden:
-            self._lbl_ip.config(text="• • • • • • • • •", fg=C_MUTED)
-            self._btn_ip_toggle.config(text="👁️ Show IP")
+            self._lbl_ip.configure(text="• • • • • • • • •", text_color=C_MUTED)
+            self._btn_ip_toggle.configure(text="👁️ Show IP")
         else:
-            self._lbl_ip.config(text=self._ip, fg=C_ACCENT)
-            self._btn_ip_toggle.config(text="🙈 Hide IP")
+            self._lbl_ip.configure(text=self._ip, text_color=C_ACCENT)
+            self._btn_ip_toggle.configure(text="🙈 Hide IP")
 
     def _refresh_ip(self):
         self._ip = get_local_ip()
         if not self._ip_hidden:
-            self._lbl_ip.config(text=self._ip)
+            self._lbl_ip.configure(text=self._ip)
         log(f"IP refreshed: {self._ip}")
 
     def _on_close(self):
@@ -967,15 +835,20 @@ class App(tk.Tk):
             import pystray
             from PIL import Image, ImageDraw
 
-            # Build a simple icon image if no icon.ico is present
-            ico_path = _BASE / "icon.ico"
-            if ico_path.exists():
-                img = Image.open(str(ico_path))
+            # Use the main PNG icon for the tray
+            ico_png = _BASE / "Streamer Tablet Helper.png"
+            if ico_png.exists():
+                img = Image.open(str(ico_png))
             else:
-                img = Image.new("RGB", (64, 64), "#0a0c10")
-                d   = ImageDraw.Draw(img)
-                d.ellipse([8, 8, 56, 56], fill="#00e5ff")
-                d.text((22, 20), "S", fill="#000000")
+                # Fallback to icon.ico if present
+                ico_path = _BASE / "icon.ico"
+                if ico_path.exists():
+                    img = Image.open(str(ico_path))
+                else:
+                    img = Image.new("RGB", (64, 64), "#0a0c10")
+                    d   = ImageDraw.Draw(img)
+                    d.ellipse([8, 8, 56, 56], fill="#00e5ff")
+                    d.text((22, 20), "S", fill="#000000")
 
             def _show(icon, item):
                 icon.stop()
@@ -1004,7 +877,6 @@ class App(tk.Tk):
 # ─────────────────────────────────────────────────────────────────────────────
 def main():
     load_config()
-    _load_twitch_tokens()
 
     app = App()
     app.mainloop()

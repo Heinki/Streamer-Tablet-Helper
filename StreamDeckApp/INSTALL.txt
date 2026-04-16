@@ -28,11 +28,3 @@ HOW TO USE WITH THE TABLET:
 3. Open the app on your tablet/phone
 4. Enter that IP address and click 'Connect'
 5. Your buttons will appear!
-
------------------------------------------
-TWITCH SETUP:
-- Open 'Settings' in the PC app
-- Enter your Twitch Client ID (get one at dev.twitch.tv)
-- Click 'Log in with Twitch'
-- A browser will open - follow the steps
-- Now your Twitch marker buttons will work!
