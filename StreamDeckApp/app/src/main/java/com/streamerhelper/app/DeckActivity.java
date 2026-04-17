@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.*;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class DeckActivity extends AppCompatActivity implements ServerClient.ConnectionListener {
@@ -47,9 +48,8 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
 
         PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = pm.newWakeLock(
-            PowerManager.SCREEN_BRIGHT_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            PowerManager.PARTIAL_WAKE_LOCK,
             "StreamerHelper:WakeLock");
-        wakeLock.acquire();
 
         vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
         dp       = getResources().getDisplayMetrics().density;
@@ -76,7 +76,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
 
     /** Called by Android when orientation/screenSize changes (we declared configChanges in manifest) */
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         // dp doesn't change but dimen resources do — reload them
         dp = getResources().getDisplayMetrics().density;
@@ -106,17 +106,21 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     @Override public void onDisconnected() { runOnUiThread(this::showDisconnected); }
 
     private void showConnected() {
-        connectionDot.setText(state.hideIp ? "⬤" : "⬤  " + state.serverIp);
+        connectionDot.setText(getString(R.string.dot_connected, state.hideIp ? "" : state.serverIp));
         connectionDot.setTextColor(0xFF00ff99);
     }
     private void showDisconnected() {
-        connectionDot.setText(state.hideIp ? "⬤" : "⬤  reconnecting…");
+        connectionDot.setText(getString(R.string.dot_disconnected, state.hideIp ? "" : getString(R.string.reconnecting)));
         connectionDot.setTextColor(0xFFff3c6e);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (wakeLock != null && !wakeLock.isHeld()) {
+            // Provide a timeout (10 mins) as a safety measure
+            wakeLock.acquire(10 * 60 * 1000L);
+        }
         if (needsRefresh) {
             needsRefresh = false;
             loadDimens();
@@ -126,10 +130,17 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         client.stopRetryLoop();
-        if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
     }
 
     // ── SETTINGS ──────────────────────────────────────────────────────────────
@@ -138,16 +149,14 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(px(24), px(16), px(24), px(24));
 
-        layout.addView(sectionLabel("PC IP ADDRESS"));
-        EditText ipField = styledEdit(state.serverIp, "192.168.x.x");
+        layout.addView(sectionLabel(getString(R.string.pc_ip_address)));
+        EditText ipField = styledEdit(state.serverIp, getString(R.string.ip_hint));
         ipField.setInputType(android.text.InputType.TYPE_CLASS_PHONE);
         layout.addView(ipField);
-        layout.addView(hintText(
-            "Run streamer_helper_server.py on your PC — it prints the IP on startup.\n" +
-            "Tip: you can connect multiple devices to the same server at once!"));
+        layout.addView(hintText(getString(R.string.ip_help)));
 
         CheckBox hideIpCheck = new CheckBox(this);
-        hideIpCheck.setText("Hide server IP address in top bar");
+        hideIpCheck.setText(R.string.hide_ip);
         hideIpCheck.setTextColor(0xFFcdd6f4);
         hideIpCheck.setChecked(state.hideIp);
         LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(
@@ -158,52 +167,25 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
 
         divider(layout);
 
-        layout.addView(sectionLabel("PAGES  (long-press tab to rename)"));
+        layout.addView(sectionLabel(getString(R.string.pages_title)));
         LinearLayout pagesContainer = new LinearLayout(this);
         pagesContainer.setOrientation(LinearLayout.VERTICAL);
         layout.addView(pagesContainer);
         refreshPagesList(pagesContainer);
 
-        Button addPageBtn = new Button(this);
-        addPageBtn.setText("＋  Add Page");
-        addPageBtn.setAllCaps(false);
-        addPageBtn.setTextColor(0xFF00e5ff);
-        addPageBtn.setBackgroundColor(0xFF1e2535);
-        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        alp.setMargins(0, px(6), 0, 0);
-        addPageBtn.setLayoutParams(alp);
-        addPageBtn.setOnClickListener(v -> promptAddPage(() -> refreshPagesList(pagesContainer)));
-        layout.addView(addPageBtn);
+        layout.addView(createAddPageButton(pagesContainer));
 
         divider(layout);
 
         // Device info section — shows what mode is active
-        layout.addView(sectionLabel("CURRENT LAYOUT"));
-        String mode = gridColumns + " columns";
-        boolean isTablet = getResources().getConfiguration().smallestScreenWidthDp >= 600;
-        boolean isLand   = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-        String device = isTablet ? "Tablet" : "Phone";
-        String orient = isLand   ? "landscape" : "portrait";
-        TextView deviceInfo = new TextView(this);
-        deviceInfo.setText(device + " · " + orient + " → " + mode + "\n" +
-            "Rotate or switch device for a different column count.\n" +
-            "Connect phone + tablet to the same server for more buttons!");
-        deviceInfo.setTextColor(0xFF555e7a);
-        deviceInfo.setTextSize(12f);
-        deviceInfo.setLineSpacing(px(4), 1f);
-        layout.addView(deviceInfo);
+        layout.addView(sectionLabel(getString(R.string.current_layout)));
+        layout.addView(createDeviceInfoText());
 
         divider(layout);
 
-        layout.addView(sectionLabel("HOW TO USE"));
+        layout.addView(sectionLabel(getString(R.string.how_to_use)));
         TextView tips = new TextView(this);
-        tips.setText(
-            "• Tap a button  →  fires the action on your PC\n" +
-            "• Hold a button  →  edit label, icon, keys, color\n" +
-            "• 🔒 buttons require TWO taps (confirmation mode)\n" +
-            "• Tap  +  →  add a new button\n" +
-            "• Long-press a tab  →  rename it");
+        tips.setText(R.string.usage_tips);
         tips.setTextColor(0xFF555e7a);
         tips.setTextSize(12f);
         tips.setLineSpacing(px(5), 1f);
@@ -213,9 +195,9 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         scroll.addView(layout);
 
         new AlertDialog.Builder(this)
-            .setTitle("⚙  Settings")
+            .setTitle(R.string.settings_title)
             .setView(scroll)
-            .setPositiveButton("Save IP", (d, w) -> {
+            .setPositiveButton(R.string.save_ip, (d, w) -> {
                 String newIp = ipField.getText().toString().trim();
                 boolean newHide = hideIpCheck.isChecked();
                 boolean changed = false;
@@ -225,7 +207,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
                     client.setIp(newIp);
                     client.ping(null);
                     changed = true;
-                    Toast.makeText(this, "IP updated — reconnecting…", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, R.string.ip_updated, Toast.LENGTH_SHORT).show();
                 }
 
                 if (newHide != state.hideIp) {
@@ -238,51 +220,82 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
                     if (client.isConnected()) showConnected(); else showDisconnected();
                 }
             })
-            .setNegativeButton("Close", null)
+            .setNegativeButton(R.string.close, null)
             .show();
+    }
+
+    private Button createAddPageButton(LinearLayout pagesContainer) {
+        Button addPageBtn = new Button(this);
+        addPageBtn.setText(R.string.add_page_btn);
+        addPageBtn.setAllCaps(false);
+        addPageBtn.setTextColor(0xFF00e5ff);
+        addPageBtn.setBackgroundColor(0xFF1e2535);
+        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        alp.setMargins(0, px(6), 0, 0);
+        addPageBtn.setLayoutParams(alp);
+        addPageBtn.setOnClickListener(v -> promptAddPage(() -> refreshPagesList(pagesContainer)));
+        return addPageBtn;
+    }
+
+    private TextView createDeviceInfoText() {
+        String mode = gridColumns + " columns";
+        boolean isTablet = getResources().getConfiguration().smallestScreenWidthDp >= 600;
+        boolean isLand   = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+        String device = isTablet ? "Tablet" : "Phone";
+        String orient = isLand   ? "landscape" : "portrait";
+        TextView deviceInfo = new TextView(this);
+        deviceInfo.setText(getString(R.string.layout_info, device, orient, mode, getString(R.string.layout_help)));
+        deviceInfo.setTextColor(0xFF555e7a);
+        deviceInfo.setTextSize(12f);
+        deviceInfo.setLineSpacing(px(4), 1f);
+        return deviceInfo;
     }
 
     private void refreshPagesList(LinearLayout container) {
         container.removeAllViews();
         for (int i = 0; i < state.pages.size(); i++) {
-            final int idx = i;
-            DeckPage page  = state.pages.get(i);
-            int cnt        = page.buttons.size();
-
-            LinearLayout row = new LinearLayout(this);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(px(12), px(10), px(4), px(10));
-            row.setBackgroundColor(0xFF1e2535);
-            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            rlp.setMargins(0, 0, 0, px(3));
-            row.setLayoutParams(rlp);
-
-            TextView name = new TextView(this);
-            name.setText(page.name + "  ·  " + cnt + " button" + (cnt == 1 ? "" : "s"));
-            name.setTextColor(0xFFcdd6f4);
-            name.setTextSize(13f);
-            name.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            row.addView(name);
-
-            Button renameBtn = smallBtn("✏", 0xFF888888);
-            renameBtn.setOnClickListener(v -> promptRenamePage(idx, () -> refreshPagesList(container)));
-            row.addView(renameBtn);
-
-            if (state.pages.size() > 1) {
-                Button deleteBtn = smallBtn("🗑", 0xFFff3c6e);
-                deleteBtn.setOnClickListener(v -> promptDeletePage(idx, () -> refreshPagesList(container)));
-                row.addView(deleteBtn);
-            }
-            container.addView(row);
+            container.addView(createPageRow(i, container));
         }
     }
 
+    private View createPageRow(int idx, LinearLayout container) {
+        DeckPage page  = state.pages.get(idx);
+        int cnt        = page.buttons.size();
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(px(12), px(10), px(4), px(10));
+        row.setBackgroundColor(0xFF1e2535);
+        LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        rlp.setMargins(0, 0, 0, px(3));
+        row.setLayoutParams(rlp);
+
+        TextView name = new TextView(this);
+        name.setText(getString(R.string.button_count, page.name, cnt, cnt == 1 ? "" : "s"));
+        name.setTextColor(0xFFcdd6f4);
+        name.setTextSize(13f);
+        name.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(name);
+
+        Button renameBtn = smallBtn("✏", 0xFF888888);
+        renameBtn.setOnClickListener(v -> promptRenamePage(idx, () -> refreshPagesList(container)));
+        row.addView(renameBtn);
+
+        if (state.pages.size() > 1) {
+            Button deleteBtn = smallBtn("🗑", 0xFFff3c6e);
+            deleteBtn.setOnClickListener(v -> promptDeletePage(idx, () -> refreshPagesList(container)));
+            row.addView(deleteBtn);
+        }
+        return row;
+    }
+
     private void promptAddPage(Runnable onDone) {
-        EditText et = styledEdit("", "e.g. Speedrun, OBS, Sounds");
-        new AlertDialog.Builder(this).setTitle("New Page").setView(et)
-            .setPositiveButton("Add", (d, w) -> {
+        EditText et = styledEdit("", getString(R.string.page_name_hint));
+        new AlertDialog.Builder(this).setTitle(R.string.new_page).setView(et)
+            .setPositiveButton(R.string.add, (d, w) -> {
                 String n = et.getText().toString().trim();
                 if (n.isEmpty()) n = "Page " + (state.pages.size() + 1);
                 state.pages.add(new DeckPage(n));
@@ -290,34 +303,34 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
                 currentPage = state.pages.size() - 1;
                 renderTabs(); renderGrid();
                 if (onDone != null) onDone.run();
-            }).setNegativeButton("Cancel", null).show();
+            }).setNegativeButton(R.string.cancel, null).show();
     }
 
     private void promptRenamePage(int idx, Runnable onDone) {
-        EditText et = styledEdit(state.pages.get(idx).name, "Page name");
-        new AlertDialog.Builder(this).setTitle("Rename Page").setView(et)
-            .setPositiveButton("Save", (d, w) -> {
+        EditText et = styledEdit(state.pages.get(idx).name, getString(R.string.page_name_hint));
+        new AlertDialog.Builder(this).setTitle(R.string.rename_page).setView(et)
+            .setPositiveButton(R.string.save, (d, w) -> {
                 String n = et.getText().toString().trim();
                 if (!n.isEmpty()) {
                     state.pages.get(idx).name = n;
                     state.save(); renderTabs();
                     if (onDone != null) onDone.run();
                 }
-            }).setNegativeButton("Cancel", null).show();
+            }).setNegativeButton(R.string.cancel, null).show();
     }
 
     private void promptDeletePage(int idx, Runnable onDone) {
         int cnt = state.pages.get(idx).buttons.size();
         new AlertDialog.Builder(this)
-            .setTitle("Delete \"" + state.pages.get(idx).name + "\"?")
-            .setMessage(cnt + " button" + (cnt == 1 ? "" : "s") + " will be deleted.")
-            .setPositiveButton("Delete", (d, w) -> {
+            .setTitle(getString(R.string.delete_page_title, state.pages.get(idx).name))
+            .setMessage(getString(R.string.delete_page_msg, cnt, cnt == 1 ? "" : "s"))
+            .setPositiveButton(R.string.delete, (d, w) -> {
                 state.pages.remove(idx);
                 state.save();
                 if (currentPage >= state.pages.size()) currentPage = state.pages.size() - 1;
                 renderTabs(); renderGrid();
                 if (onDone != null) onDone.run();
-            }).setNegativeButton("Cancel", null).show();
+            }).setNegativeButton(R.string.cancel, null).show();
     }
 
     // ── TABS ──────────────────────────────────────────────────────────────────
@@ -414,7 +427,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
 
         // "hold to edit" ghost text
         TextView holdHint = new TextView(this);
-        holdHint.setText("hold to edit");
+        holdHint.setText(R.string.hold_to_edit);
         holdHint.setTextColor(0xFF1e2840);
         holdHint.setTextSize(7f);
         holdHint.setGravity(Gravity.CENTER);
@@ -465,7 +478,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         // Only show text label when there's room
         if (gridColumns >= 3) {
             TextView lbl = new TextView(this);
-            lbl.setText("add button");
+            lbl.setText(R.string.add_button);
             lbl.setTextColor(0xFF2a3045);
             lbl.setTextSize(btnHintSize);
             lbl.setGravity(Gravity.CENTER);
@@ -488,7 +501,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
                 confirmPrimed   = idx;
                 confirmPrimedAt = now;
                 flashCard(inner, 0xFFff9f00);
-                Toast.makeText(this, "Tap again to confirm: " + btn.label, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.confirm_tap, btn.label), Toast.LENGTH_SHORT).show();
             }
         } else {
             doFire(btn, inner, color);
@@ -497,7 +510,12 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
 
     private void doFire(DeckButton btn, LinearLayout inner, int color) {
         if (btn.haptic && vibrator != null && vibrator.hasVibrator()) {
-            vibrator.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE));
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(40, VibrationEffect.DEFAULT_AMPLITUDE));
+            } else {
+                // Deprecated in API 26, but required for API 21-25
+                vibrator.vibrate(40);
+            }
         }
         flashCard(inner, color);
         fireAction(btn);
@@ -511,7 +529,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     // ── FIRE ──────────────────────────────────────────────────────────────────
     private void fireAction(DeckButton btn) {
         ServerClient.Callback cb = (ok, msg) ->
-            Toast.makeText(this, ok ? "✓ " + btn.label : "✗ " + msg, Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, ok ? getString(R.string.action_success, btn.label) : getString(R.string.action_fail, msg), Toast.LENGTH_SHORT).show();
         switch (btn.type) {
             case "keys":  client.sendKeys(btn.keys, cb); break;
             case "sound": client.sendSound(btn.sound, cb); break;

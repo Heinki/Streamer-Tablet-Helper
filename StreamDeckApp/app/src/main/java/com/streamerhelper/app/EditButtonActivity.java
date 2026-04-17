@@ -119,7 +119,7 @@ public class EditButtonActivity extends AppCompatActivity {
             fWidth1.setChecked(true);
         }
 
-        ((TextView) findViewById(R.id.editor_title)).setText(isNew ? "New Button" : "Edit Button");
+        ((TextView) findViewById(R.id.editor_title)).setText(isNew ? R.string.new_button : R.string.edit_button);
         findViewById(R.id.btn_save).setOnClickListener(v -> save());
         findViewById(R.id.btn_cancel).setOnClickListener(v -> finish());
         View del = findViewById(R.id.btn_delete);
@@ -180,7 +180,7 @@ public class EditButtonActivity extends AppCompatActivity {
     private void save() {
         String icon  = fIcon.getText().toString().trim();
         String label = fLabel.getText().toString().trim();
-        if (label.isEmpty()) { fLabel.setError("Required"); return; }
+        if (label.isEmpty()) { fLabel.setError(getString(R.string.required)); return; }
 
         String type;
         if      (fTypeSound.isChecked())  type = "sound";
@@ -218,10 +218,10 @@ public class EditButtonActivity extends AppCompatActivity {
 
     private void delete() {
         new android.app.AlertDialog.Builder(this)
-            .setTitle("Delete button?")
-            .setPositiveButton("Delete", (d, w) -> {
+            .setTitle(R.string.delete_button_title)
+            .setPositiveButton(R.string.delete, (d, w) -> {
                 state.pages.get(pageIdx).buttons.remove(btnIdx);
                 state.save(); finish();
-            }).setNegativeButton("Cancel", null).show();
+            }).setNegativeButton(R.string.cancel, null).show();
     }
 }

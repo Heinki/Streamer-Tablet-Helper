@@ -33,7 +33,7 @@ public class SetupActivity extends AppCompatActivity {
             String ip = ipInput.getText().toString().trim();
             if (ip.isEmpty()) return;
 
-            statusText.setText("Connecting…");
+            statusText.setText(R.string.connecting);
             statusText.setTextColor(0xFFAAAAAA);
             connectBtn.setEnabled(false);
 
@@ -46,7 +46,7 @@ public class SetupActivity extends AppCompatActivity {
                     startActivity(new Intent(this, DeckActivity.class));
                     finish();
                 } else {
-                    statusText.setText("✗ Cannot reach server — is it running?\n(" + msg + ")");
+                    statusText.setText(getString(R.string.server_unreachable, msg));
                     statusText.setTextColor(0xFFff3c6e);
                 }
             });
@@ -54,14 +54,14 @@ public class SetupActivity extends AppCompatActivity {
 
         // If already configured, try to go straight to deck
         if (!state.serverIp.isEmpty()) {
-            statusText.setText("Reconnecting to " + state.serverIp + "…");
+            statusText.setText(getString(R.string.reconnecting_to, state.serverIp));
             client = new ServerClient(state.serverIp);
             client.ping((ok, msg) -> {
                 if (ok) {
                     startActivity(new Intent(this, DeckActivity.class));
                     finish();
                 } else {
-                    statusText.setText("Last server unreachable. Enter IP to reconnect.");
+                    statusText.setText(R.string.last_server_unreachable);
                     statusText.setTextColor(0xFFAAAAAA);
                 }
             });
