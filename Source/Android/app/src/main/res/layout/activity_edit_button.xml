@@ -12,52 +12,54 @@
         android:layout_height="wrap_content" android:layout_marginBottom="20dp"/>
 
     <!-- Icon -->
-    <TextView android:text="ICON (emoji)" android:textSize="10sp" android:textColor="#555e7a"
+    <TextView android:text="ICON (emoji)" android:textSize="10sp" android:textColor="#ffffff"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
     <EditText android:id="@+id/f_icon" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:inputType="text" android:hint="🎮"
         android:textColorHint="#444444" android:textColor="#000000" android:textSize="22sp"
-        android:background="#00e5ff" android:padding="12dp" android:layout_marginBottom="14dp"/>
+        android:background="#00e5ff" android:padding="12dp" android:layout_marginBottom="14dp"
+        android:textCursorDrawable="@null"/>
 
     <!-- Label -->
-    <TextView android:text="LABEL" android:textSize="10sp" android:textColor="#555e7a"
+    <TextView android:text="LABEL" android:textSize="10sp" android:textColor="#ffffff"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
     <EditText android:id="@+id/f_label" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:inputType="text" android:hint="Split"
         android:textColorHint="#444444" android:textColor="#000000" android:textSize="16sp"
-        android:background="#00e5ff" android:padding="12dp" android:layout_marginBottom="14dp"/>
+        android:background="#00e5ff" android:padding="12dp" android:layout_marginBottom="14dp"
+        android:textCursorDrawable="@null"/>
 
     <!-- Action type -->
-    <TextView android:text="ACTION TYPE" android:textSize="10sp" android:textColor="#555e7a"
+    <TextView android:text="ACTION TYPE" android:textSize="10sp" android:textColor="#ffffff"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="6dp"/>
     <RadioGroup android:id="@+id/f_type_group" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="14dp">
       <RadioButton android:id="@+id/f_type_keys" android:text="Keys"
-          android:textColor="#cdd6f4" android:buttonTint="#00e5ff"
+          android:textColor="#ffffff" android:buttonTint="#00e5ff"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="4dp"/>
       <RadioButton android:id="@+id/f_type_sound" android:text="Sound"
-          android:textColor="#cdd6f4" android:buttonTint="#00e5ff"
+          android:textColor="#ffffff" android:buttonTint="#00e5ff"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="4dp"/>
       <RadioButton android:id="@+id/f_type_obs" android:text="OBS"
-          android:textColor="#cdd6f4" android:buttonTint="#00e5ff"
+          android:textColor="#ffffff" android:buttonTint="#00e5ff"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="4dp"/>
       <RadioButton android:id="@+id/f_type_twitch" android:text="Twitch"
-          android:textColor="#9146ff" android:buttonTint="#9146ff"
+          android:textColor="#ffffff" android:buttonTint="#9146ff"
           android:layout_width="wrap_content" android:layout_height="wrap_content"/>
     </RadioGroup>
 
     <!-- Keys fields -->
     <LinearLayout android:id="@+id/keys_fields" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:orientation="vertical">
-      <TextView android:text="KEYS (comma-separated)" android:textSize="10sp" android:textColor="#555e7a"
+      <TextView android:text="KEYS (comma-separated)" android:textSize="10sp" android:textColor="#ffffff"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_keys" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text" android:hint="ctrl,alt,1"
           android:textColorHint="#444444" android:textColor="#000000" android:textSize="15sp"
           android:background="#00e5ff" android:padding="12dp" android:fontFamily="monospace"
-          android:layout_marginBottom="5dp"/>
+          android:layout_marginBottom="5dp" android:textCursorDrawable="@null"/>
       <TextView android:text="Examples:  ctrl,alt,1  ·  ctrl,shift,f11  ·  f1  ·  win,d"
-          android:textSize="10sp" android:textColor="#3a4460"
+          android:textSize="10sp" android:textColor="#ffffff"
           android:layout_width="wrap_content" android:layout_height="wrap_content"
           android:layout_marginBottom="14dp"/>
     </LinearLayout>
@@ -65,44 +67,45 @@
     <!-- Sound fields -->
     <LinearLayout android:id="@+id/sound_fields" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
-      <TextView android:text="SOUND FILE PATH (on your PC)" android:textSize="10sp" android:textColor="#555e7a"
+      <TextView android:text="SOUND FILE PATH (on your PC)" android:textSize="10sp" android:textColor="#ffffff"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_sound" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text"
           android:hint="C:\sounds\airhorn.mp3" android:textColorHint="#444444"
           android:textColor="#000000" android:textSize="13sp" android:background="#00e5ff"
-          android:padding="12dp" android:fontFamily="monospace" android:layout_marginBottom="14dp"/>
+          android:padding="12dp" android:fontFamily="monospace" android:layout_marginBottom="14dp"
+          android:textCursorDrawable="@null"/>
     </LinearLayout>
 
     <!-- OBS fields -->
     <LinearLayout android:id="@+id/obs_fields" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
-      <TextView android:text="OBS COMMAND" android:textSize="10sp" android:textColor="#555e7a"
+      <TextView android:text="OBS COMMAND" android:textSize="10sp" android:textColor="#ffffff"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <Spinner android:id="@+id/f_obs_command" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:background="#111520"
           android:padding="4dp" android:layout_marginBottom="10dp"/>
 
       <TextView android:id="@+id/f_obs_scene_label" android:text="SCENE NAME"
-          android:textSize="10sp" android:textColor="#555e7a" android:visibility="gone"
+          android:textSize="10sp" android:textColor="#ffffff" android:visibility="gone"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_obs_scene" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text" android:visibility="gone"
           android:hint="Gameplay" android:textColorHint="#444444" android:textColor="#000000"
           android:textSize="15sp" android:background="#00e5ff" android:padding="12dp"
-          android:layout_marginBottom="10dp"/>
+          android:layout_marginBottom="10dp" android:textCursorDrawable="@null"/>
 
       <TextView android:id="@+id/f_obs_source_label" android:text="SOURCE / INPUT NAME"
-          android:textSize="10sp" android:textColor="#555e7a" android:visibility="gone"
+          android:textSize="10sp" android:textColor="#ffffff" android:visibility="gone"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_obs_source" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text" android:visibility="gone"
           android:hint="Mic/Aux" android:textColorHint="#444444" android:textColor="#000000"
           android:textSize="15sp" android:background="#00e5ff" android:padding="12dp"
-          android:layout_marginBottom="10dp"/>
+          android:layout_marginBottom="10dp" android:textCursorDrawable="@null"/>
 
       <TextView android:text="Enable WebSocket in OBS → Tools → WebSocket Server Settings\nStart server with:  python streamer_helper_server.py --obs-password YOUR_PW"
-          android:textSize="10sp" android:textColor="#3a4460" android:lineSpacingExtra="3dp"
+          android:textSize="10sp" android:textColor="#ffffff" android:lineSpacingExtra="3dp"
           android:layout_width="wrap_content" android:layout_height="wrap_content"
           android:layout_marginBottom="14dp"/>
     </LinearLayout>
@@ -111,30 +114,57 @@
     <LinearLayout android:id="@+id/twitch_fields" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
 
-      <TextView android:text="TWITCH — STREAM MARKER" android:textSize="10sp" android:textColor="#9146ff"
+      <TextView android:text="TWITCH ACTION" android:textSize="10sp" android:textColor="#ffffff"
           android:letterSpacing="0.1" android:layout_width="wrap_content"
           android:layout_height="wrap_content" android:layout_marginBottom="8dp"/>
 
-      <TextView android:text="MARKER DESCRIPTION  (optional, max 140 chars)"
-          android:textSize="10sp" android:textColor="#555e7a"
-          android:layout_width="wrap_content" android:layout_height="wrap_content"
-          android:layout_marginBottom="5dp"/>
-      <EditText android:id="@+id/f_twitch_desc" android:layout_width="match_parent"
-          android:layout_height="wrap_content" android:inputType="text"
-          android:hint="e.g. WR Pace, Funny moment, Clip this"
-          android:textColorHint="#444444" android:textColor="#000000" android:textSize="15sp"
-          android:background="#00e5ff" android:padding="12dp"
-          android:maxLength="140" android:layout_marginBottom="8dp"/>
+      <RadioGroup android:id="@+id/f_twitch_type_group" android:layout_width="match_parent"
+          android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
+        <RadioButton android:id="@+id/f_twitch_type_marker" android:text="Marker"
+            android:textColor="#ffffff" android:buttonTint="#9146ff" android:checked="true"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="20dp"/>
+        <RadioButton android:id="@+id/f_twitch_type_ad" android:text="Run Ad"
+            android:textColor="#ffffff" android:buttonTint="#9146ff"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+      </RadioGroup>
+
+      <!-- Marker Specific -->
+      <LinearLayout android:id="@+id/twitch_marker_fields" android:layout_width="match_parent"
+          android:layout_height="wrap_content" android:orientation="vertical">
+        <TextView android:text="MARKER DESCRIPTION (optional)"
+            android:textSize="10sp" android:textColor="#ffffff"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"/>
+        <EditText android:id="@+id/f_twitch_desc" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:inputType="text"
+            android:hint="e.g. WR Pace, Funny moment"
+            android:textColorHint="#444444" android:textColor="#000000" android:textSize="15sp"
+            android:background="#00e5ff" android:padding="12dp"
+            android:maxLength="140" android:layout_marginBottom="8dp"
+            android:textCursorDrawable="@null"/>
+      </LinearLayout>
+
+      <!-- Ad Specific -->
+      <LinearLayout android:id="@+id/twitch_ad_fields" android:layout_width="match_parent"
+          android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+        <TextView android:text="AD LENGTH (seconds)"
+            android:textSize="10sp" android:textColor="#ffffff"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginBottom="5dp"/>
+        <Spinner android:id="@+id/f_twitch_ad_length" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:background="#111520"
+            android:padding="4dp" android:layout_marginBottom="10dp"/>
+      </LinearLayout>
 
       <TextView
-          android:text="Sets a VOD marker at this point in the stream.\nLeave description blank for a plain marker.\n\nSetup: run streamer_helper_server.py --twitch-login once to authenticate."
-          android:textSize="10sp" android:textColor="#3a4460" android:lineSpacingExtra="3dp"
+          android:text="Marker: Sets a VOD marker.\nAd: Runs a commercial (30-180s).\nSetup: run streamer_helper_server.py --twitch-login once to authenticate."
+          android:textSize="10sp" android:textColor="#ffffff" android:lineSpacingExtra="3dp"
           android:layout_width="wrap_content" android:layout_height="wrap_content"
           android:layout_marginBottom="14dp"/>
     </LinearLayout>
 
     <!-- Color -->
-    <TextView android:text="COLOR" android:textSize="10sp" android:textColor="#555e7a"
+    <TextView android:text="COLOR" android:textSize="10sp" android:textColor="#ffffff"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="8dp"/>
     <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:scrollbars="none" android:layout_marginBottom="16dp">
@@ -143,31 +173,31 @@
     </HorizontalScrollView>
 
     <!-- Button size -->
-    <TextView android:text="BUTTON WIDTH" android:textSize="10sp" android:textColor="#555e7a"
+    <TextView android:text="BUTTON WIDTH" android:textSize="10sp" android:textColor="#ffffff"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
     <RadioGroup android:id="@+id/f_width_group" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="14dp">
       <RadioButton android:id="@+id/f_width_1" android:text="Normal (1×)"
-          android:textColor="#cdd6f4" android:buttonTint="#00e5ff" android:checked="true"
+          android:textColor="#ffffff" android:buttonTint="#00e5ff" android:checked="true"
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="24dp"/>
       <RadioButton android:id="@+id/f_width_2" android:text="Wide (2×)"
-          android:textColor="#cdd6f4" android:buttonTint="#00e5ff"
+          android:textColor="#ffffff" android:buttonTint="#00e5ff"
           android:layout_width="wrap_content" android:layout_height="wrap_content"/>
     </RadioGroup>
 
     <!-- Options -->
-    <TextView android:text="OPTIONS" android:textSize="10sp" android:textColor="#555e7a"
+    <TextView android:text="OPTIONS" android:textSize="10sp" android:textColor="#ffffff"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="6dp"/>
 
     <CheckBox android:id="@+id/f_confirm_tap"
         android:text="Require double-tap to fire  🔒"
-        android:textColor="#cdd6f4" android:textSize="14sp" android:buttonTint="#ff9f00"
+        android:textColor="#ffffff" android:textSize="14sp" android:buttonTint="#ff9f00"
         android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_marginBottom="6dp"/>
 
     <CheckBox android:id="@+id/f_haptic"
         android:text="Haptic feedback on press"
-        android:textColor="#cdd6f4" android:textSize="14sp" android:buttonTint="#00e5ff"
+        android:textColor="#ffffff" android:textSize="14sp" android:buttonTint="#00e5ff"
         android:checked="true"
         android:layout_width="wrap_content" android:layout_height="wrap_content"
         android:layout_marginBottom="20dp"/>
@@ -177,7 +207,7 @@
         android:orientation="horizontal">
       <Button android:id="@+id/btn_cancel" android:layout_width="0dp" android:layout_weight="1"
           android:layout_height="wrap_content" android:text="CANCEL"
-          android:textColor="#cdd6f4" android:backgroundTint="#1e2535" android:layout_marginEnd="8dp"/>
+          android:textColor="#ffffff" android:backgroundTint="#1e2535" android:layout_marginEnd="8dp"/>
       <Button android:id="@+id/btn_delete" android:layout_width="0dp" android:layout_weight="1"
           android:layout_height="wrap_content" android:text="DELETE"
           android:textColor="#ffffff" android:backgroundTint="#ff3c6e" android:layout_marginEnd="8dp"/>

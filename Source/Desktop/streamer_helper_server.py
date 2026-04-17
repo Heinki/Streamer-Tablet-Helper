@@ -181,26 +181,33 @@ def obs_connect():
 
 def obs_request(request_type, data=None):
     global _obs_ws, _obs_connected
-    ws, err = obs_connect()
-    if err:
-        _obs_connected = False
-        return False, err
-    try:
-        import uuid
-        rid = str(uuid.uuid4())[:8]
-        payload = {"op":6,"d":{"requestType":request_type,"requestId":rid,"requestData":data or {}}}
-        with _obs_lock:
-            ws.send(json.dumps(payload))
-            resp = json.loads(ws.recv())
-        res = resp.get("d",{}).get("requestStatus",{})
-        if res.get("result"):
-            _obs_connected = True
-            return True, resp.get("d",{}).get("responseData",{})
-        return False, res.get("comment","OBS error")
-    except Exception as e:
-        _obs_ws = None
-        _obs_connected = False
-        return False, str(e)
+    
+    # Try twice: once with potentially cached connection, once with a fresh one
+    for attempt in range(2):
+        ws, err = obs_connect()
+        if err:
+            _obs_connected = False
+            return False, err
+        try:
+            import uuid
+            rid = str(uuid.uuid4())[:8]
+            payload = {"op":6,"d":{"requestType":request_type,"requestId":rid,"requestData":data or {}}}
+            with _obs_lock:
+                ws.send(json.dumps(payload))
+                resp = json.loads(ws.recv())
+            res = resp.get("d",{}).get("requestStatus",{})
+            if res.get("result"):
+                _obs_connected = True
+                return True, resp.get("d",{}).get("responseData",{})
+            return False, res.get("comment","OBS error")
+        except Exception as e:
+            _obs_ws = None # Clear cached connection on failure
+            _obs_connected = False
+            if attempt == 1: # If second attempt also fails, return error
+                return False, str(e)
+            log(f"OBS request failed, retrying with fresh connection... ({e})")
+            continue
+    return False, "Failed after retry"
 
 def handle_obs(data):
     cmd = data.get("command","")
@@ -255,22 +262,35 @@ def _fetch_twitch_user():
 
 def handle_twitch(data):
     cmd  = data.get("command", "")
-    if cmd == "marker":
-        token = _cfg.get("twitch_access_token", "")
-        if not token:
-            return False, "No Twitch token set in Settings"
-        
+    token = _cfg.get("twitch_access_token", "")
+    if not token:
+        return False, "No Twitch token set in Settings"
+    
+    if not _twitch_user_id:
+        _fetch_twitch_user()
         if not _twitch_user_id:
-            _fetch_twitch_user()
-            if not _twitch_user_id:
-                return False, "Could not fetch Twitch user ID - check your token"
-        
+            return False, "Could not fetch Twitch user ID - check your token"
+
+    if cmd == "marker":
         desc = data.get("description", "")
         ok, resp = _twitch_api("POST", f"/streams/markers?user_id={_twitch_user_id}&description={urllib.parse.quote(desc)}")
         if ok:
             pos = resp.get("data", [{}])[0].get("position_seconds", 0)
             return True, f"Marker at {pos}s" + (f" - {desc}" if desc else "")
         return False, resp
+    
+    elif cmd == "ad":
+        length = int(data.get("length", 30))
+        ok, resp = _twitch_api("POST", "/channels/commercial", {
+            "broadcaster_id": _twitch_user_id,
+            "length": length
+        })
+        if ok:
+            msg = resp.get("data", [{}])[0].get("message", "")
+            if not msg: msg = f"Running {length}s ad"
+            return True, msg
+        return False, resp
+        
     return False, f"Unknown Twitch command: {cmd}"
 
 # ─────────────────────────────────────────────────────────────────────────────

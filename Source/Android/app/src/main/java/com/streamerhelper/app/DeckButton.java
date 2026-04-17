@@ -21,8 +21,9 @@ public class DeckButton {
     public float  obsVolume = -1f;
 
     // type == "twitch"
-    public String twitchCommand;    // e.g. "marker"
+    public String twitchCommand;    // e.g. "marker" | "ad"
     public String twitchDescription; // optional marker description (max 140 chars)
+    public int    twitchAdLength = 30; // 30, 60, 90, 120, 150, 180
 
     // UX options
     public String  color      = "#00e5ff";

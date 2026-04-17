@@ -534,7 +534,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
             case "keys":  client.sendKeys(btn.keys, cb); break;
             case "sound": client.sendSound(btn.sound, cb); break;
             case "obs":    client.sendObs(btn.obsCommand, btn.obsScene, btn.obsSource, btn.obsVolume, cb); break;
-            case "twitch": client.sendTwitch(btn.twitchCommand, btn.twitchDescription, cb); break;
+            case "twitch": client.sendTwitch(btn.twitchCommand, btn.twitchDescription, btn.twitchAdLength, cb); break;
         }
     }
 

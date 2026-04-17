@@ -188,7 +188,7 @@ public class ServerClient {
     }
 
 
-    public void sendTwitch(String command, String description, Callback cb) {
+    public void sendTwitch(String command, String description, int adLength, Callback cb) {
         executor.submit(() -> {
             try {
                 JSONObject body = new JSONObject();
@@ -196,6 +196,8 @@ public class ServerClient {
                 body.put("command", command);
                 if (description != null && !description.isEmpty())
                     body.put("description", description);
+                if (command.equals("ad"))
+                    body.put("length", adLength);
                 postJson(body.toString(), cb);
             } catch (Exception e) {
                 deliver(cb, false, e.getMessage());

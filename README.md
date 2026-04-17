@@ -51,20 +51,43 @@ If you want to modify the project or build the executables yourself:
 
 ## **Setup & Features**
 
-### **1. OBS Setup**
+### **1. Keyboard Shortcuts (Keys)**
+
+- On your Android app, add or edit a button.
+- Set the **Type** to **Keys**.
+- Enter the key combination separated by commas (e.g., `ctrl, alt, 0`).
+- When pressed, the PC will simulate these keys as if they were pressed on your keyboard.
+
+### **2. Sound Alerts (Sound)**
+
+- Set the **Type** to **Sound**.
+- Enter the **Full Path** to your sound file on the PC (e.g., `C:\Users\Name\Desktop\sound.wav`).
+- **Requirement**: Currently only supports **.wav** files for background playback.
+- The sound plays through your default PC audio device and is captured by OBS "Desktop Audio".
+
+### **3. OBS Setup**
 
 - Open OBS Studio.
 - Go to `Tools > WebSocket Server Settings`.
 - Ensure **"Enable WebSocket Server"** is checked.
 - Note the Port (usually 4455) and the Password.
 - In the PC Helper app, enter these details in the **Settings** tab.
+- You can then use the **OBS** button type to:
+  - Change Scenes
+  - Start/Stop Streaming or Recording
+  - Toggle Mute or set Volume for any source.
 
-### **2. Twitch Setup (Stream Markers)**
+### **4. Twitch Setup (Stream Markers & Ads)**
 
 - Go to the **Settings** tab in the PC Helper app.
 - Click **"Open Token Generator"**.
-- Follow the instructions to generate a token (select the `channel:manage:broadcast` scope).
+- Follow the instructions to generate a token.
+  - **Markers**: Check the `channel:manage:broadcast` scope.
+  - **Ads**: Check the `channel:edit:commercial` scope.
 - Copy the Access Token and Client ID into the PC Helper app.
+- Use the **Twitch** button type to:
+  - Create stream markers with optional descriptions.
+  - Run commercials (30, 60, 90, 120, 150, or 180 seconds).
 
 ---
 
@@ -75,5 +98,3 @@ If you want to modify the project or build the executables yourself:
 - **Firewall**: Check that port `7878` is not blocked on your PC.
 
 ---
-
-_Happy Streaming!_
