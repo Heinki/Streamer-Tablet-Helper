@@ -301,33 +301,58 @@ def handle_obs(data):
         if not source:
             return False, "No source name provided"
 
-        # 1. Get current scene if not provided
-        if not scene:
-            ok, resp = obs_request("GetCurrentProgramScene")
+        if scene:
+            # Scene specified, toggle only in that scene
+            # 2. Get scene item ID
+            ok, resp = obs_request(
+                "GetSceneItemId", {"sceneName": scene, "sourceName": source})
             if not ok:
-                return False, f"Could not get current scene: {resp}"
-            scene = resp.get("currentProgramSceneName")
+                return False, f"Could not find source '{source}' in scene '{scene}'"
+            item_id = resp.get("sceneItemId")
 
-        # 2. Get scene item ID
-        ok, resp = obs_request(
-            "GetSceneItemId", {"sceneName": scene, "sourceName": source})
-        if not ok:
-            return False, f"Could not find source '{source}' in scene '{scene}'"
-        item_id = resp.get("sceneItemId")
+            # 3. Get current enabled state
+            ok, resp = obs_request("GetSceneItemEnabled", {
+                                   "sceneName": scene, "sceneItemId": item_id})
+            if not ok:
+                return False, f"Could not get visibility for '{source}'"
+            is_enabled = resp.get("sceneItemEnabled")
 
-        # 3. Get current enabled state
-        ok, resp = obs_request("GetSceneItemEnabled", {
-                               "sceneName": scene, "sceneItemId": item_id})
-        if not ok:
-            return False, f"Could not get visibility for '{source}'"
-        is_enabled = resp.get("sceneItemEnabled")
-
-        # 4. Toggle
-        return obs_request("SetSceneItemEnabled", {
-            "sceneName": scene,
-            "sceneItemId": item_id,
-            "sceneItemEnabled": not is_enabled
-        })
+            # 4. Toggle
+            return obs_request("SetSceneItemEnabled", {
+                "sceneName": scene,
+                "sceneItemId": item_id,
+                "sceneItemEnabled": not is_enabled
+            })
+        else:
+            # No scene specified, toggle in all scenes where the source exists
+            ok, resp = obs_request("GetSceneList")
+            if not ok:
+                return False, f"Could not get scene list: {resp}"
+            scenes = resp.get("scenes", [])
+            toggled = False
+            for sc in scenes:
+                scene_name = sc.get("sceneName")
+                # Check if source exists in this scene
+                ok2, resp2 = obs_request(
+                    "GetSceneItemId", {"sceneName": scene_name, "sourceName": source})
+                if ok2:
+                    item_id = resp2.get("sceneItemId")
+                    # Get current enabled state
+                    ok3, resp3 = obs_request("GetSceneItemEnabled", {
+                                             "sceneName": scene_name, "sceneItemId": item_id})
+                    if ok3:
+                        is_enabled = resp3.get("sceneItemEnabled")
+                        # Toggle
+                        obs_request("SetSceneItemEnabled", {
+                            "sceneName": scene_name,
+                            "sceneItemId": item_id,
+                            "sceneItemEnabled": not is_enabled
+                        })
+                        toggled = True
+            if toggled:
+                return True, f"Toggled source '{source}' in applicable scenes"
+            else:
+                return False, f"Source '{source}' not found in any scene"
     elif cmd.lower() == "setvolume":
         vol = max(0.0, min(1.0, float(data.get("volume", 1.0))))
         return obs_request("SetInputVolume", {"inputName": source, "inputVolumeMul": vol})
