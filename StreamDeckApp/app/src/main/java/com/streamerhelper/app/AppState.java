@@ -10,18 +10,21 @@ import java.util.UUID;
 
 public class AppState {
     private static final String PREFS     = "sth_prefs";
-    private static final String KEY_IP    = "server_ip";
-    private static final String KEY_PAGES = "pages_json";
+    private static final String KEY_IP      = "server_ip";
+    private static final String KEY_HIDE_IP = "hide_ip";
+    private static final String KEY_PAGES   = "pages_json";
 
     private static AppState instance;
     private final SharedPreferences prefs;
 
     public List<DeckPage> pages;
-    public String serverIp;
+    public String  serverIp;
+    public boolean hideIp;
 
     private AppState(Context ctx) {
         prefs    = ctx.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         serverIp = prefs.getString(KEY_IP, "");
+        hideIp   = prefs.getBoolean(KEY_HIDE_IP, false);
         pages    = loadPages();
     }
 
@@ -48,7 +51,11 @@ public class AppState {
         try {
             JSONArray arr = new JSONArray();
             for (DeckPage p : pages) arr.put(pageToJson(p));
-            prefs.edit().putString(KEY_IP, serverIp).putString(KEY_PAGES, arr.toString()).apply();
+            prefs.edit()
+                .putString(KEY_IP, serverIp)
+                .putBoolean(KEY_HIDE_IP, hideIp)
+                .putString(KEY_PAGES, arr.toString())
+                .apply();
         } catch (Exception ignored) {}
     }
 

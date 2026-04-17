@@ -276,7 +276,7 @@ def handle_twitch(data):
 # ─────────────────────────────────────────────────────────────────────────────
 # HTTP SERVER
 # ─────────────────────────────────────────────────────────────────────────────
-_connected_clients = set()
+_connected_clients = {}  # IP -> last_seen_timestamp
 _clients_lock      = threading.Lock()
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -304,7 +304,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         ip = self.client_address[0]
         with _clients_lock:
-            _connected_clients.add(ip)
+            _connected_clients[ip] = time.time()
         if self.path == "/ping":
             self.send_json(200, {
                 "status":  "ok",
@@ -318,7 +318,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         ip = self.client_address[0]
         with _clients_lock:
-            _connected_clients.add(ip)
+            _connected_clients[ip] = time.time()
 
         length = int(self.headers.get("Content-Length", 0))
         try:
@@ -755,6 +755,7 @@ class App(ctk.CTk):
     # ── TWITCH TOKEN VALIDATION on startup ───────────────────────────────────
     def _validate_twitch_token(self):
         token = _cfg.get("twitch_access_token", "")
+        cid   = _cfg.get("twitch_client_id", "")
         if not token: return
         def _run():
             global _twitch_user_id, _twitch_username
@@ -764,13 +765,22 @@ class App(ctk.CTk):
                     headers={"Authorization": f"OAuth {token}"})
                 with urllib.request.urlopen(req, timeout=5) as r:
                     vdata = json.loads(r.read())
+                
                 _twitch_user_id  = vdata.get("user_id",  "")
                 _twitch_username = vdata.get("login",    "")
-                log(f"Twitch ready - logged in as {_twitch_username}")
-                self.after(0, self._update_twitch_label)
+                actual_cid       = vdata.get("client_id", "")
+                
+                if cid and actual_cid and cid != actual_cid:
+                    log(f"Twitch Error: Client ID mismatch! Config has {cid}, but token belongs to {actual_cid}")
+                    self.after(0, lambda: self._lbl_twitch_status.configure(
+                        text="✗ Client ID mismatch - check your settings", text_color=C_RED))
+                else:
+                    log(f"Twitch ready - logged in as {_twitch_username}")
+                    self.after(0, self._update_twitch_label)
             except Exception as e:
                 log(f"Twitch token validation failed: {e}")
                 _twitch_username = ""
+                _twitch_user_id  = ""
                 self.after(0, self._update_twitch_label)
         threading.Thread(target=_run, daemon=True).start()
 
@@ -792,8 +802,14 @@ class App(ctk.CTk):
         except ImportError:
             self._dot_keys.configure(text_color=C_MUTED)
 
+        # Cleanup inactive clients (not seen for >15s)
+        now = time.time()
         with _clients_lock:
+            inactive = [ip for ip, last in _connected_clients.items() if now - last > 15]
+            for ip in inactive:
+                del _connected_clients[ip]
             n = len(_connected_clients)
+
         self._lbl_devices.configure(
             text=f"{n} device{'s' if n != 1 else ''} seen",
             text_color=C_GREEN if n > 0 else C_MUTED)

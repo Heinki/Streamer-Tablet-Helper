@@ -24,11 +24,13 @@ If you have the source code and want to build the executable yourself:
 ## Usage
 
 ### 1. Connecting the App
+
 - When you run the server, it will display your "PC IP".
 - Enter this IP address into the Streamer Tablet Helper app on your mobile device.
 - The status light for "Server" should turn green.
 
 ### 2. OBS Setup
+
 - Open OBS Studio.
 - Go to Tools -> WebSocket Server Settings.
 - Ensure "Enable WebSocket Server" is checked.
@@ -37,6 +39,7 @@ If you have the source code and want to build the executable yourself:
 - Click "Save OBS Settings" and then "Test Connection".
 
 ### 3. Twitch Setup (Stream Markers)
+
 - Go to the Settings tab in the PC Helper app.
 - Click "Open Token Generator".
 - Follow the instructions on the website to generate a token (ensure you select the `channel:manage:broadcast` scope).
@@ -44,15 +47,18 @@ If you have the source code and want to build the executable yourself:
 - Click "Save & Test Twitch".
 
 ### 4. Keyboard Shortcuts
+
 - The app can simulate key presses (e.g., F13-F24) which you can bind to actions in OBS or other streaming software.
 - Ensure the app has permissions to simulate keys if prompted by your antivirus or OS.
 
 ## Troubleshooting
 
 ### Connection Refused (WinError 10061)
+
 - This usually means OBS is not open or the WebSocket server is not enabled in OBS.
 - Check that the Port in the Helper app matches the Port in OBS (default is 4455).
 
 ### IP Address Not Found
+
 - Ensure both your PC and your mobile device are on the same Wi-Fi network.
 - Check your firewall settings to ensure port 7878 is not being blocked.

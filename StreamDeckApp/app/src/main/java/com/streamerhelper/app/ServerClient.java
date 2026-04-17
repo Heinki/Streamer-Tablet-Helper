@@ -54,6 +54,10 @@ public class ServerClient {
         this.listener = l;
     }
 
+    public boolean isConnected() {
+        return connected;
+    }
+
     // ── PUBLIC ACTIONS ────────────────────────────────────────────────────────
 
     public void ping(Callback cb) {

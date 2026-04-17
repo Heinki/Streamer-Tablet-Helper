@@ -106,11 +106,11 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     @Override public void onDisconnected() { runOnUiThread(this::showDisconnected); }
 
     private void showConnected() {
-        connectionDot.setText("⬤  " + state.serverIp);
+        connectionDot.setText(state.hideIp ? "⬤" : "⬤  " + state.serverIp);
         connectionDot.setTextColor(0xFF00ff99);
     }
     private void showDisconnected() {
-        connectionDot.setText("⬤  reconnecting…");
+        connectionDot.setText(state.hideIp ? "⬤" : "⬤  reconnecting…");
         connectionDot.setTextColor(0xFFff3c6e);
     }
 
@@ -145,6 +145,16 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         layout.addView(hintText(
             "Run streamer_helper_server.py on your PC — it prints the IP on startup.\n" +
             "Tip: you can connect multiple devices to the same server at once!"));
+
+        CheckBox hideIpCheck = new CheckBox(this);
+        hideIpCheck.setText("Hide server IP address in top bar");
+        hideIpCheck.setTextColor(0xFFcdd6f4);
+        hideIpCheck.setChecked(state.hideIp);
+        LinearLayout.LayoutParams hlp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        hlp.setMargins(0, px(8), 0, 0);
+        hideIpCheck.setLayoutParams(hlp);
+        layout.addView(hideIpCheck);
 
         divider(layout);
 
@@ -207,12 +217,25 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
             .setView(scroll)
             .setPositiveButton("Save IP", (d, w) -> {
                 String newIp = ipField.getText().toString().trim();
+                boolean newHide = hideIpCheck.isChecked();
+                boolean changed = false;
+
                 if (!newIp.isEmpty() && !newIp.equals(state.serverIp)) {
                     state.serverIp = newIp;
-                    state.save();
                     client.setIp(newIp);
                     client.ping(null);
+                    changed = true;
                     Toast.makeText(this, "IP updated — reconnecting…", Toast.LENGTH_SHORT).show();
+                }
+
+                if (newHide != state.hideIp) {
+                    state.hideIp = newHide;
+                    changed = true;
+                }
+
+                if (changed) {
+                    state.save();
+                    if (client.isConnected()) showConnected(); else showDisconnected();
                 }
             })
             .setNegativeButton("Close", null)
@@ -525,13 +548,14 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         tv.setLayoutParams(lp);
         return tv;
     }
-    private EditText styledEdit(String value, String hint) {
+    private EditText styledEdit(String val, String hint) {
         EditText et = new EditText(this);
-        et.setText(value); et.setHint(hint);
-        et.setHintTextColor(0xFF3a4460); et.setTextColor(0xFFcdd6f4); et.setTextSize(15f);
-        et.setBackgroundColor(0xFF1e2535); et.setPadding(px(12), px(12), px(12), px(12));
-        et.setLayoutParams(new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        et.setText(val);
+        et.setHint(hint);
+        et.setTextColor(0xFF000000);
+        et.setHintTextColor(0xFF444444);
+        et.setBackgroundColor(0xFF00e5ff);
+        et.setPadding(px(12), px(12), px(12), px(12));
         return et;
     }
     private Button smallBtn(String text, int textColor) {

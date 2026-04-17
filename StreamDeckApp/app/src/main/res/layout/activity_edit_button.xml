@@ -16,31 +16,31 @@
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
     <EditText android:id="@+id/f_icon" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:inputType="text" android:hint="🎮"
-        android:textColorHint="#333" android:textColor="#cdd6f4" android:textSize="22sp"
-        android:background="#111520" android:padding="12dp" android:layout_marginBottom="14dp"/>
+        android:textColorHint="#444444" android:textColor="#000000" android:textSize="22sp"
+        android:background="#00e5ff" android:padding="12dp" android:layout_marginBottom="14dp"/>
 
     <!-- Label -->
     <TextView android:text="LABEL" android:textSize="10sp" android:textColor="#555e7a"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
     <EditText android:id="@+id/f_label" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:inputType="text" android:hint="Split"
-        android:textColorHint="#333" android:textColor="#cdd6f4" android:textSize="16sp"
-        android:background="#111520" android:padding="12dp" android:layout_marginBottom="14dp"/>
+        android:textColorHint="#444444" android:textColor="#000000" android:textSize="16sp"
+        android:background="#00e5ff" android:padding="12dp" android:layout_marginBottom="14dp"/>
 
     <!-- Action type -->
     <TextView android:text="ACTION TYPE" android:textSize="10sp" android:textColor="#555e7a"
         android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="6dp"/>
     <RadioGroup android:id="@+id/f_type_group" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="14dp">
+        android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginBottom="14dp">
       <RadioButton android:id="@+id/f_type_keys" android:text="Keys"
           android:textColor="#cdd6f4" android:buttonTint="#00e5ff"
-          android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="20dp"/>
+          android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="4dp"/>
       <RadioButton android:id="@+id/f_type_sound" android:text="Sound"
           android:textColor="#cdd6f4" android:buttonTint="#00e5ff"
-          android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="20dp"/>
+          android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="4dp"/>
       <RadioButton android:id="@+id/f_type_obs" android:text="OBS"
           android:textColor="#cdd6f4" android:buttonTint="#00e5ff"
-          android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="20dp"/>
+          android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="4dp"/>
       <RadioButton android:id="@+id/f_type_twitch" android:text="Twitch"
           android:textColor="#9146ff" android:buttonTint="#9146ff"
           android:layout_width="wrap_content" android:layout_height="wrap_content"/>
@@ -53,8 +53,8 @@
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_keys" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text" android:hint="ctrl,alt,1"
-          android:textColorHint="#333" android:textColor="#cdd6f4" android:textSize="15sp"
-          android:background="#111520" android:padding="12dp" android:fontFamily="monospace"
+          android:textColorHint="#444444" android:textColor="#000000" android:textSize="15sp"
+          android:background="#00e5ff" android:padding="12dp" android:fontFamily="monospace"
           android:layout_marginBottom="5dp"/>
       <TextView android:text="Examples:  ctrl,alt,1  ·  ctrl,shift,f11  ·  f1  ·  win,d"
           android:textSize="10sp" android:textColor="#3a4460"
@@ -69,8 +69,8 @@
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_sound" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text"
-          android:hint="C:\sounds\airhorn.mp3" android:textColorHint="#333"
-          android:textColor="#cdd6f4" android:textSize="13sp" android:background="#111520"
+          android:hint="C:\sounds\airhorn.mp3" android:textColorHint="#444444"
+          android:textColor="#000000" android:textSize="13sp" android:background="#00e5ff"
           android:padding="12dp" android:fontFamily="monospace" android:layout_marginBottom="14dp"/>
     </LinearLayout>
 
@@ -88,8 +88,8 @@
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_obs_scene" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text" android:visibility="gone"
-          android:hint="Gameplay" android:textColorHint="#333" android:textColor="#cdd6f4"
-          android:textSize="15sp" android:background="#111520" android:padding="12dp"
+          android:hint="Gameplay" android:textColorHint="#444444" android:textColor="#000000"
+          android:textSize="15sp" android:background="#00e5ff" android:padding="12dp"
           android:layout_marginBottom="10dp"/>
 
       <TextView android:id="@+id/f_obs_source_label" android:text="SOURCE / INPUT NAME"
@@ -97,8 +97,8 @@
           android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginBottom="5dp"/>
       <EditText android:id="@+id/f_obs_source" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text" android:visibility="gone"
-          android:hint="Mic/Aux" android:textColorHint="#333" android:textColor="#cdd6f4"
-          android:textSize="15sp" android:background="#111520" android:padding="12dp"
+          android:hint="Mic/Aux" android:textColorHint="#444444" android:textColor="#000000"
+          android:textSize="15sp" android:background="#00e5ff" android:padding="12dp"
           android:layout_marginBottom="10dp"/>
 
       <TextView android:text="Enable WebSocket in OBS → Tools → WebSocket Server Settings\nStart server with:  python streamer_helper_server.py --obs-password YOUR_PW"
@@ -122,8 +122,8 @@
       <EditText android:id="@+id/f_twitch_desc" android:layout_width="match_parent"
           android:layout_height="wrap_content" android:inputType="text"
           android:hint="e.g. WR Pace, Funny moment, Clip this"
-          android:textColorHint="#333" android:textColor="#cdd6f4" android:textSize="15sp"
-          android:background="#111520" android:padding="12dp"
+          android:textColorHint="#444444" android:textColor="#000000" android:textSize="15sp"
+          android:background="#00e5ff" android:padding="12dp"
           android:maxLength="140" android:layout_marginBottom="8dp"/>
 
       <TextView
