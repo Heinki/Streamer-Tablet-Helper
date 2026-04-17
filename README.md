@@ -124,3 +124,11 @@ This is Open Source, you can open a PR for improvements, open issue or just fork
 **6. Feature X is not working!?**
 
 Open an Issue and I will take a look!
+
+---
+
+## **License**
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+You are free to use, modify, and distribute this software for any purpose, commercial or personal, with or without modifications.
