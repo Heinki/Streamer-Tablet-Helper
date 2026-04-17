@@ -98,3 +98,29 @@ If you want to modify the project or build the executables yourself:
 - **Firewall**: Check that port `7878` is not blocked on your PC.
 
 ---
+
+## **FAQ**
+
+**1. Why did you make this?**
+
+I don't have a Streamdeck but I liked the idea, I have an old Tablet that is just collecting dust, so I wanted to use this! and here we are!
+
+**2. Did you code this?**
+
+Most of it is "vibe coded" as I have no knowledge of working with Android, Python. I also wanted to get something "working" quickly.
+
+**3. Wow this is trash! You did not _insert feature here_ in this app!**
+
+Sorry, I just mostly wanted to get my needs in here, but I'm willing to add more features/suggestion!
+
+**4. You suck since you Vibe coded this app!**
+
+That is not a question!
+
+**5. Can I suggest something or work on this?**
+
+This is Open Source, you can open a PR for improvements, open issue or just fork it yourself and upgrade it however you want!
+
+**6. Feature X is not working!?**
+
+Open an Issue and I will take a look!
