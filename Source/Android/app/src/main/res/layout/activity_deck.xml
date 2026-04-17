@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0a0c10">
+
+    <!-- Top bar: height driven by dimen resource -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/topbar_height"
+        android:orientation="horizontal"
+        android:background="#111520"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:text="STREAMER TABLET HELPER"
+            android:textSize="@dimen/topbar_title_size"
+            android:textStyle="bold"
+            android:textColor="#00e5ff"
+            android:letterSpacing="0.15"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/connection_dot"
+            android:textSize="10sp"
+            android:textColor="#00ff99"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="6dp"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <Button
+            android:id="@+id/settings_btn"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:text="⚙"
+            android:textSize="18sp"
+            android:textColor="#555e7a"
+            android:backgroundTint="#00000000"
+            android:padding="0dp"/>
+    </LinearLayout>
+
+    <!-- Tab bar -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/tab_height"
+        android:scrollbars="none"
+        android:background="#111520">
+        <LinearLayout
+            android:id="@+id/tab_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp"/>
+    </HorizontalScrollView>
+
+    <View android:layout_width="match_parent" android:layout_height="1dp"
+        android:background="#1e2535"/>
+
+    <!-- Button grid — fills remaining space, scrollable -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="@dimen/btn_margin">
+        <GridLayout
+            android:id="@+id/button_grid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:useDefaultMargins="false"/>
+    </ScrollView>
+
+</LinearLayout>
