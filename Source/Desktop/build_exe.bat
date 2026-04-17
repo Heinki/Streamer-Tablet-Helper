@@ -24,15 +24,16 @@ if errorlevel 1 (
 
 :: Ensure pip is up to date
 echo  Checking for required tools...
-python -m pip install --upgrade pip --quiet
+python -m pip install --upgrade pip
 
 :: Install required packages
 echo  Installing dependencies (this may take a minute)...
-python -m pip install pyinstaller pyautogui pystray pillow websocket-client customtkinter --quiet
+python -m pip install pyinstaller pyautogui pystray pillow websocket-client customtkinter
 
 :: Build the EXE
 echo  Building application...
 pyinstaller ^
+    --noconfirm ^
     --onefile ^
     --windowed ^
     --icon="Streamer Tablet Helper.png" ^

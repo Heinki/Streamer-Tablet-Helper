@@ -35,7 +35,8 @@ public class EditButtonActivity extends AppCompatActivity {
 
     private static final String[] OBS_COMMANDS = {
         "SetCurrentProgramScene","StartStream","StopStream",
-        "StartRecord","StopRecord","ToggleMute","SetVolume"
+        "StartRecord","StopRecord","ToggleMute","SetVolume",
+        "ToggleSource"
     };
 
     private static final String[] TWITCH_AD_LENGTHS = {
@@ -178,8 +179,8 @@ public class EditButtonActivity extends AppCompatActivity {
 
     private void updateObsFields() {
         String cmd = (String) fObsCommand.getSelectedItem();
-        boolean needsScene  = "SetCurrentProgramScene".equals(cmd);
-        boolean needsSource = "ToggleMute".equals(cmd) || "SetVolume".equals(cmd);
+        boolean needsScene  = "SetCurrentProgramScene".equals(cmd) || "ToggleSource".equals(cmd);
+        boolean needsSource = "ToggleMute".equals(cmd) || "SetVolume".equals(cmd) || "ToggleSource".equals(cmd);
         fObsScene.setVisibility(needsScene   ? View.VISIBLE : View.GONE);
         fObsSource.setVisibility(needsSource ? View.VISIBLE : View.GONE);
         findViewById(R.id.f_obs_scene_label).setVisibility(needsScene   ? View.VISIBLE : View.GONE);

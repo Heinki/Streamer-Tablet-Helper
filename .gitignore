@@ -99,3 +99,4 @@ StreamDeckApp/local.properties
 *.bin
 *.properties
 *.probe
+Releases/config.json

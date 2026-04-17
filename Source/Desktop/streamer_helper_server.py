@@ -75,6 +75,13 @@ def log(msg: str):
     else:
         print(line)
 
+def mask_ip(ip: str) -> str:
+    """Masks an IP address for privacy (e.g. 192.168.0.1 -> 192.168.x.x)"""
+    parts = ip.split('.')
+    if len(parts) == 4:
+        return f"{parts[0]}.{parts[1]}.x.x"
+    return "x.x.x.x"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # NETWORK
 # ─────────────────────────────────────────────────────────────────────────────
@@ -157,27 +164,57 @@ def obs_connect():
             ws = websocket.WebSocket()
             ws.settimeout(4)
             ws.connect(f"ws://{_cfg['obs_host']}:{_cfg['obs_port']}")
-            hello    = json.loads(ws.recv())
+            
+            # 1. Receive Hello (op 0)
+            hello_raw = ws.recv()
+            if not hello_raw:
+                return None, "Connection closed by OBS immediately."
+            hello = json.loads(hello_raw)
+            
+            if hello.get("op") != 0:
+                return None, f"Expected Hello (op 0), got {hello.get('op')}. Are you using OBS WebSocket 4.x? This app requires 5.x."
+
             auth_data = hello.get("d", {}).get("authentication")
             pwd = _cfg["obs_password"]
-            if auth_data and pwd:
-                import base64, hashlib
+            
+            # 2. Identify (op 1)
+            identify_d = {
+                "rpcVersion": hello.get("d", {}).get("rpcVersion", 1),
+                "eventSubscriptions": 0
+            }
+
+            if auth_data:
+                if not pwd:
+                    return None, "OBS requires a password, but none is set in Settings."
+                
                 secret = base64.b64encode(
                     hashlib.sha256((pwd + auth_data["salt"]).encode()).digest()
                 ).decode()
                 auth_resp = base64.b64encode(
                     hashlib.sha256((secret + auth_data["challenge"]).encode()).digest()
                 ).decode()
-                ws.send(json.dumps({"op":1,"d":{"rpcVersion":1,"authentication":auth_resp,"eventSubscriptions":0}}))
-            else:
-                ws.send(json.dumps({"op":1,"d":{"rpcVersion":1,"eventSubscriptions":0}}))
-            ws.recv()
+                identify_d["authentication"] = auth_resp
+
+            ws.send(json.dumps({"op": 1, "d": identify_d}))
+            
+            # 3. Receive IdentifyResponse (op 2)
+            resp_raw = ws.recv()
+            if not resp_raw:
+                return None, "Authentication failed: OBS closed the connection. Check your password."
+            
+            resp = json.loads(resp_raw)
+            if resp.get("op") != 2:
+                return None, f"Auth failed or unexpected response: {resp}"
+
             _obs_ws = ws
             _obs_connected = True
             return ws, None
         except Exception as e:
             _obs_connected = False
-            return None, str(e)
+            err_msg = str(e)
+            if "10053" in err_msg:
+                err_msg = "Connection aborted (WinError 10053). This usually means OBS rejected the connection (wrong password or version)."
+            return None, err_msg
 
 def obs_request(request_type, data=None):
     global _obs_ws, _obs_connected
@@ -217,6 +254,33 @@ def handle_obs(data):
     elif cmd == "StartRecord":   return obs_request("StartRecord")
     elif cmd == "StopRecord":    return obs_request("StopRecord")
     elif cmd == "ToggleMute":    return obs_request("ToggleInputMute",{"inputName":data.get("source","")})
+    elif cmd == "ToggleSource":
+        scene = data.get("scene", "")
+        source = data.get("source", "")
+        if not source: return False, "No source name provided"
+        
+        # 1. Get current scene if not provided
+        if not scene:
+            ok, resp = obs_request("GetCurrentProgramScene")
+            if not ok: return False, f"Could not get current scene: {resp}"
+            scene = resp.get("currentProgramSceneName")
+        
+        # 2. Get scene item ID
+        ok, resp = obs_request("GetSceneItemId", {"sceneName": scene, "sourceName": source})
+        if not ok: return False, f"Could not find source '{source}' in scene '{scene}'"
+        item_id = resp.get("sceneItemId")
+        
+        # 3. Get current enabled state
+        ok, resp = obs_request("GetSceneItemEnabled", {"sceneName": scene, "sceneItemId": item_id})
+        if not ok: return False, f"Could not get visibility for '{source}'"
+        is_enabled = resp.get("sceneItemEnabled")
+        
+        # 4. Toggle
+        return obs_request("SetSceneItemEnabled", {
+            "sceneName": scene,
+            "sceneItemId": item_id,
+            "sceneItemEnabled": not is_enabled
+        })
     elif cmd == "SetVolume":
         vol = max(0.0, min(1.0, float(data.get("volume",1.0))))
         return obs_request("SetInputVolume",{"inputName":data.get("source",""),"inputVolumeMul":vol})
@@ -348,7 +412,7 @@ class Handler(BaseHTTPRequestHandler):
 
         action = data.get("action", "")
         extras = {k: v for k, v in data.items() if k != "action"}
-        log(f"← [{ip}]  {action}  {json.dumps(extras) if extras else ''}")
+        log(f"← [{mask_ip(ip)}]  {action}  {json.dumps(extras) if extras else ''}")
 
         if action == "keys":
             keys = [k.strip() for k in data.get("keys", []) if k.strip()]
@@ -638,7 +702,7 @@ class App(ctk.CTk):
         ctk.CTkButton(obs_btn_row, text="Save OBS Settings", font=("Segoe UI", 12, "bold"),
                   fg_color=C_ACCENT, text_color="#000", hover_color="#00b8cc",
                   height=36, command=self._save_obs).pack(side="left", padx=(0, 8))
-        ctk.CTkButton(obs_btn_row, text="Test Connection", font=("Segoe UI", 12),
+        ctk.CTkButton(obs_btn_row, text="💾 Save & Test Connection", font=("Segoe UI", 12),
                   fg_color=C_BORDER, text_color=C_TEXT, hover_color=C_SURFACE,
                   height=36, command=self._test_obs).pack(side="left")
 
@@ -703,18 +767,36 @@ class App(ctk.CTk):
                   ).pack(anchor="w", pady=(12, 0))
 
     # ── OBS ACTIONS ──────────────────────────────────────────────────────────
-    def _save_obs(self):
+    def _apply_obs_settings(self, silent=False):
         global _obs_ws
-        _cfg["obs_password"] = self._obs_pw_var.get().strip()
+        pwd = self._obs_pw_var.get().strip()
+        
+        # Validation: check for newlines or if it looks like the log buffer
+        if "\n" in pwd or "Server started" in pwd or "IP refreshed" in pwd:
+            if not messagebox.askyesno("Warning", 
+                "The password contains newlines or looks like log messages.\n\n"
+                "Are you sure you want to save this as your password?"):
+                return False
+
+        _cfg["obs_password"] = pwd
         _cfg["obs_host"]     = self._obs_host_var.get().strip() or "localhost"
         try:   _cfg["obs_port"] = int(self._obs_port_var.get().strip())
         except: _cfg["obs_port"] = 4455
+        
         _obs_ws = None   # force reconnect
         save_config()
         log("OBS settings saved")
-        messagebox.showinfo("Saved", "OBS settings saved.", parent=self)
+        if not silent:
+            messagebox.showinfo("Saved", "OBS settings saved.", parent=self)
+        return True
+
+    def _save_obs(self):
+        self._apply_obs_settings(silent=False)
 
     def _test_obs(self):
+        if not self._apply_obs_settings(silent=True):
+            return
+
         def _run():
             ok, resp = obs_request("GetVersion")
             if ok:
@@ -855,7 +937,7 @@ class App(ctk.CTk):
         self._ip = get_local_ip()
         if not self._ip_hidden:
             self._lbl_ip.configure(text=self._ip)
-        log(f"IP refreshed: {self._ip}")
+        log(f"IP refreshed: {mask_ip(self._ip)}")
 
     def _on_close(self):
         if messagebox.askokcancel("Quit",
