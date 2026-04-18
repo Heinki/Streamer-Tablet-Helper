@@ -802,7 +802,7 @@ class App(ctk.CTk):
 
         obs_btn_row = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         obs_btn_row.pack(anchor="w", pady=(0, 4))
-        ctk.CTkButton(obs_btn_row, text="Save OBS Settings", font=("Segoe UI", 12, "bold"),
+        ctk.CTkButton(obs_btn_row, text="Save OBS Connection Settings", font=("Segoe UI", 12, "bold"),
                       fg_color=C_ACCENT, text_color="#000", hover_color="#00b8cc",
                       height=36, command=self._save_obs).pack(side="left", padx=(0, 8))
         ctk.CTkButton(obs_btn_row, text="💾 Save & Test Connection", font=("Segoe UI", 12),
@@ -892,9 +892,10 @@ class App(ctk.CTk):
 
         _obs_ws = None   # force reconnect
         save_config()
-        log("OBS settings saved")
+        log("OBS connection settings saved")
         if not silent:
-            messagebox.showinfo("Saved", "OBS settings saved.", parent=self)
+            messagebox.showinfo(
+                "Saved", "OBS connection settings saved.", parent=self)
         return True
 
     def _save_obs(self):

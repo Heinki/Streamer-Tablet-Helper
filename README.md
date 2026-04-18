@@ -93,9 +93,18 @@ If you want to modify the project or build the executables yourself:
 
 ## **Troubleshooting**
 
-- **Connection Refused**: Ensure OBS is open and the WebSocket server is enabled.
-- **IP Not Found**: Ensure both PC and mobile device are on the **same Wi-Fi network**.
-- **Firewall**: Check that port `7878` is not blocked on your PC.
+### **Android Can't Connect ("Failed to Connect to Port 7878")**
+
+1. **Same Network**: Make sure your PC and tablet are on the **same Wi-Fi network** (2.4GHz and 5GHz networks are different!)
+2. **Firewall**: Check your PC's firewall settings — allow port `7878` for your app
+3. **Correct IP**: Verify the IP address in Android Settings matches your PC's actual IP (check Desktop app's "IP copied" message)
+4. **Desktop Server**: Ensure the Desktop server is running (you should see "Server started - listening on port 7878" in the logs)
+
+### **OBS WebSocket Connection Issues**
+
+- **Connection Refused**: Ensure OBS is open and WebSocket server is enabled (OBS → Tools → WebSocket Server Settings)
+- **Wrong Password**: Make sure the password matches your OBS WebSocket password exactly
+- **Port Conflict**: Default port is `4455` — if you changed it, make sure it's correct
 
 ---
 

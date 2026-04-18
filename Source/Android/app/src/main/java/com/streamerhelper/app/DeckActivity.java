@@ -186,7 +186,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         layout.addView(sectionLabel(getString(R.string.how_to_use)));
         TextView tips = new TextView(this);
         tips.setText(R.string.usage_tips);
-        tips.setTextColor(0xFF555e7a);
+        tips.setTextColor(0xFFcdd6f4);
         tips.setTextSize(12f);
         tips.setLineSpacing(px(5), 1f);
         layout.addView(tips);
@@ -246,7 +246,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         String orient = isLand   ? "landscape" : "portrait";
         TextView deviceInfo = new TextView(this);
         deviceInfo.setText(getString(R.string.layout_info, device, orient, mode, getString(R.string.layout_help)));
-        deviceInfo.setTextColor(0xFF555e7a);
+        deviceInfo.setTextColor(0xFFcdd6f4);
         deviceInfo.setTextSize(12f);
         deviceInfo.setLineSpacing(px(4), 1f);
         return deviceInfo;
@@ -550,7 +550,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     // ── VIEW HELPERS ──────────────────────────────────────────────────────────
     private TextView sectionLabel(String text) {
         TextView tv = new TextView(this);
-        tv.setText(text); tv.setTextSize(10f); tv.setTextColor(0xFF555e7a); tv.setLetterSpacing(0.1f);
+        tv.setText(text); tv.setTextSize(10f); tv.setTextColor(0xFFcdd6f4); tv.setLetterSpacing(0.1f);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.setMargins(0, px(14), 0, px(5));
@@ -559,7 +559,7 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     }
     private TextView hintText(String text) {
         TextView tv = new TextView(this);
-        tv.setText(text); tv.setTextSize(11f); tv.setTextColor(0xFF3a4460); tv.setLineSpacing(px(3), 1f);
+        tv.setText(text); tv.setTextSize(11f); tv.setTextColor(0xFFcdd6f4); tv.setLineSpacing(px(3), 1f);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.setMargins(0, px(4), 0, 0);
@@ -579,7 +579,11 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     private Button smallBtn(String text, int textColor) {
         Button b = new Button(this);
         b.setText(text); b.setTextColor(textColor); b.setBackgroundColor(0x00000000);
-        b.setAllCaps(false); b.setPadding(px(8), 0, px(8), 0);
+        b.setAllCaps(false);
+        b.setTextSize(16f);
+        b.setPadding(px(12), px(6), px(12), px(6));
+        b.setMinimumWidth(px(40));
+        b.setMinimumHeight(px(36));
         b.setLayoutParams(new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         return b;
