@@ -436,6 +436,28 @@ def handle_twitch(data):
             return True, msg
         return False, resp
 
+    elif cmd == "clip":
+        title = data.get("description", "")
+        duration = float(data.get("duration", 30))
+        # Clamp duration between 5 and 60 seconds
+        duration = max(5.0, min(60.0, duration))
+        ok, resp = _twitch_api("POST", f"/clips?broadcaster_id={_twitch_user_id}" +
+                               (f"&title={urllib.parse.quote(title)}" if title else "") +
+                               (f"&duration={duration}" if duration != 30 else ""))
+        if ok:
+            clip_data = resp.get("data", [{}])[0]
+            clip_id = clip_data.get("id", "")
+            edit_url = clip_data.get("edit_url", "")
+            return True, f"Clip created: https://clips.twitch.tv/{clip_id}"
+        # Provide helpful error message for common issues
+        err_msg = resp if isinstance(
+            resp, str) else resp.get("message", str(resp))
+        if "clips:edit" in err_msg.lower() or "scope" in err_msg.lower():
+            return False, "MISSING SCOPE: Your token needs 'clips:edit' permission. See Settings → Twitch for instructions."
+        if "not live" in err_msg.lower() or "404" in err_msg:
+            return False, "Cannot clip: Channel is not currently live"
+        return False, err_msg
+
     return False, f"Unknown Twitch command: {cmd}"
 
 
@@ -821,12 +843,23 @@ class App(ctk.CTk):
         _row("OAuth Token", lambda p: _entry(p, _cfg["twitch_access_token"],
                                              textvariable=self._twitch_token_var, show="●"))
 
+        # Detailed OAuth instructions with required scopes
         ctk.CTkLabel(scroll_frame,
-                     text="1. Visit twitchtokengenerator.com\n"
-                     "2. Scroll down to 'Scopes' and check 'channel:manage:broadcast'\n"
-                     "3. Click 'Generate Token' and authorize Twitch\n"
-                     "4. Copy 'Access Token' and 'Client ID' into the fields above.",
-                     font=("Segoe UI", 11), text_color=C_MUTED, justify="left"
+                     text="""SETUP INSTRUCTIONS:
+
+1. Visit twitchtokengenerator.com
+2. Enable these SCOPES (check the boxes):
+   ✓ channel:manage:broadcast  (Stream markers)
+   ✓ channel:edit:commercial    (Run ads)
+   ✓ clips:edit                 (Create clips)
+3. Click 'Generate Token' and authorize with Twitch
+4. Copy 'Access Token' and 'Client ID' above
+
+SCOPES EXPLAINED:
+• channel:manage:broadcast = Mark moments in your VOD
+• channel:edit:commercial   = Run commercials/ads
+• clips:edit                = Instant clips with one tap""",
+                     font=("Segoe UI", 11), text_color="#ffffff", justify="left"
                      ).pack(anchor="w", padx=2, pady=(0, 6))
 
         self._lbl_twitch_status = ctk.CTkLabel(scroll_frame, text="Checking status...",

@@ -19,11 +19,10 @@ public class EditButtonActivity extends AppCompatActivity {
     private EditText    fKeys, fSound, fObsScene, fObsSource, fTwitchDesc;
     private Spinner     fObsCommand, fTwitchAdLength;
     private RadioGroup  fTwitchTypeGroup;
-    private RadioButton fTwitchTypeMarker, fTwitchTypeAd;
-    private LinearLayout twitchMarkerFields, twitchAdFields;
+    private RadioButton fTwitchTypeMarker, fTwitchTypeAd, fTwitchTypeClip;
+    private LinearLayout twitchMarkerFields, twitchAdFields, twitchClipFields;
     private LinearLayout colorRow;
     private CheckBox    fConfirmTap, fHaptic;
-    private RadioGroup  fWidthGroup;
     private RadioButton fWidth1, fWidth2;
     private String      selectedColor = "#00e5ff";
 
@@ -74,13 +73,15 @@ public class EditButtonActivity extends AppCompatActivity {
         fTwitchTypeGroup = findViewById(R.id.f_twitch_type_group);
         fTwitchTypeMarker = findViewById(R.id.f_twitch_type_marker);
         fTwitchTypeAd     = findViewById(R.id.f_twitch_type_ad);
+        fTwitchTypeClip   = findViewById(R.id.f_twitch_type_clip);
         twitchMarkerFields = findViewById(R.id.twitch_marker_fields);
         twitchAdFields     = findViewById(R.id.twitch_ad_fields);
+        twitchClipFields   = findViewById(R.id.twitch_clip_fields);
+        twitchClipFields   = findViewById(R.id.twitch_clip_fields);
         fTwitchAdLength    = findViewById(R.id.f_twitch_ad_length);
         colorRow      = findViewById(R.id.color_row);
         fConfirmTap   = findViewById(R.id.f_confirm_tap);
         fHaptic       = findViewById(R.id.f_haptic);
-        fWidthGroup   = findViewById(R.id.f_width_group);
         fWidth1       = findViewById(R.id.f_width_1);
         fWidth2       = findViewById(R.id.f_width_2);
 
@@ -175,6 +176,7 @@ public class EditButtonActivity extends AppCompatActivity {
     private void updateTwitchTypeFields(int checkedId) {
         twitchMarkerFields.setVisibility(checkedId == R.id.f_twitch_type_marker ? View.VISIBLE : View.GONE);
         twitchAdFields.setVisibility(checkedId == R.id.f_twitch_type_ad ? View.VISIBLE : View.GONE);
+        twitchClipFields.setVisibility(checkedId == R.id.f_twitch_type_clip ? View.VISIBLE : View.GONE);
     }
 
     private void updateObsFields() {
@@ -244,7 +246,7 @@ public class EditButtonActivity extends AppCompatActivity {
         btn.obsScene         = fObsScene.getText().toString().trim();
         btn.obsSource        = fObsSource.getText().toString().trim();
         btn.obsVolume        = -1f;
-        btn.twitchCommand    = fTwitchTypeAd.isChecked() ? "ad" : "marker";
+        btn.twitchCommand    = fTwitchTypeAd.isChecked() ? "ad" : (fTwitchTypeClip.isChecked() ? "clip" : "marker");
         btn.twitchDescription = twitchDesc;
         try {
             btn.twitchAdLength = Integer.parseInt((String) fTwitchAdLength.getSelectedItem());

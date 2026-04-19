@@ -174,10 +174,17 @@ public class AppState {
         markerFunny.twitchDescription = "Funny moment";
         twitch.buttons.add(markerFunny);
 
-        DeckButton markerClip = new DeckButton(uid(), "✂️", "Clip This", "twitch", "", "", "#00ff99");
-        markerClip.twitchCommand     = "marker";
-        markerClip.twitchDescription = "Clip this";
-        twitch.buttons.add(markerClip);
+        DeckButton clipBtn = new DeckButton(uid(), "✂️", "Clip It", "twitch", "", "", "#00ff99");
+        clipBtn.twitchCommand     = "clip";
+        clipBtn.twitchDescription = "Instant clip";
+        clipBtn.haptic            = true;
+        twitch.buttons.add(clipBtn);
+
+        DeckButton clipEpic = new DeckButton(uid(), "🎬", "Clip Epic", "twitch", "", "", "#ff6b9d");
+        clipEpic.twitchCommand     = "clip";
+        clipEpic.twitchDescription = "Epic moment";
+        clipEpic.haptic            = true;
+        twitch.buttons.add(clipEpic);
 
         DeckButton markerPB = new DeckButton(uid(), "🎯", "PB Attempt", "twitch", "", "", "#e879f9");
         markerPB.twitchCommand     = "marker";
@@ -188,6 +195,12 @@ public class AppState {
         markerBlank.twitchCommand     = "marker";
         markerBlank.twitchDescription = "";
         twitch.buttons.add(markerBlank);
+
+        DeckButton clipMoment = new DeckButton(uid(), "📹", "Clip Moment", "twitch", "", "", "#fbbf24");
+        clipMoment.twitchCommand     = "clip";
+        clipMoment.twitchDescription = "Clip this moment";
+        clipMoment.haptic            = true;
+        twitch.buttons.add(clipMoment);
 
         list.add(twitch);
         return list;
