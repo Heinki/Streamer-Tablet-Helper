@@ -16,7 +16,7 @@ public class EditButtonActivity extends AppCompatActivity {
     private RadioGroup  fTypeGroup;
     private RadioButton fTypeKeys, fTypeSound, fTypeObs, fTypeTwitch;
     private LinearLayout keysFields, soundFields, obsFields, twitchFields;
-    private EditText    fKeys, fSound, fObsScene, fObsSource, fTwitchDesc;
+    private EditText    fKeys, fSound, fObsScene, fObsSource, fTwitchDesc, fTwitchClipTitle;
     private Spinner     fObsCommand, fTwitchAdLength;
     private RadioGroup  fTwitchTypeGroup;
     private RadioButton fTwitchTypeMarker, fTwitchTypeAd, fTwitchTypeClip;
@@ -77,8 +77,8 @@ public class EditButtonActivity extends AppCompatActivity {
         twitchMarkerFields = findViewById(R.id.twitch_marker_fields);
         twitchAdFields     = findViewById(R.id.twitch_ad_fields);
         twitchClipFields   = findViewById(R.id.twitch_clip_fields);
-        twitchClipFields   = findViewById(R.id.twitch_clip_fields);
         fTwitchAdLength    = findViewById(R.id.f_twitch_ad_length);
+        fTwitchClipTitle   = findViewById(R.id.f_twitch_clip_title);
         colorRow      = findViewById(R.id.color_row);
         fConfirmTap   = findViewById(R.id.f_confirm_tap);
         fHaptic       = findViewById(R.id.f_haptic);
@@ -94,6 +94,7 @@ public class EditButtonActivity extends AppCompatActivity {
             android.R.layout.simple_spinner_item, TWITCH_AD_LENGTHS);
         adAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         fTwitchAdLength.setAdapter(adAdapter);
+        // Removed hardcoded setSelection(0) — restore logic handles initial value
 
         fTypeGroup.setOnCheckedChangeListener((group, id) -> updateTypeFields(id));
         fTwitchTypeGroup.setOnCheckedChangeListener((group, id) -> updateTwitchTypeFields(id));
@@ -114,6 +115,7 @@ public class EditButtonActivity extends AppCompatActivity {
             fObsScene.setText(btn.obsScene);
             fObsSource.setText(btn.obsSource);
             fTwitchDesc.setText(btn.twitchDescription != null ? btn.twitchDescription : "");
+            fTwitchClipTitle.setText(btn.twitchClipTitle != null ? btn.twitchClipTitle : "");
             selectedColor = btn.color != null ? btn.color : "#00e5ff";
             fConfirmTap.setChecked(btn.confirmTap);
             fHaptic.setChecked(btn.haptic);
@@ -128,16 +130,21 @@ public class EditButtonActivity extends AppCompatActivity {
 
             if ("ad".equals(btn.twitchCommand)) {
                 fTwitchTypeAd.setChecked(true);
+                // Use fallback to 30 if twitchAdLength was never set (e.g. old save data)
+                int adLen = btn.twitchAdLength > 0 ? btn.twitchAdLength : 30;
                 for (int i = 0; i < TWITCH_AD_LENGTHS.length; i++) {
-                    if (TWITCH_AD_LENGTHS[i].equals(String.valueOf(btn.twitchAdLength))) {
-                        fTwitchAdLength.setSelection(i); break;
+                    if (TWITCH_AD_LENGTHS[i].equals(String.valueOf(adLen))) {
+                        fTwitchAdLength.setSelection(i);
+                        break;
                     }
                 }
+            } else if ("clip".equals(btn.twitchCommand)) {
+                fTwitchTypeClip.setChecked(true);
             } else {
                 fTwitchTypeMarker.setChecked(true);
             }
             updateTwitchTypeFields(fTwitchTypeGroup.getCheckedRadioButtonId());
-            
+
             if (btn.obsCommand != null) {
                 for (int i = 0; i < OBS_COMMANDS.length; i++) {
                     if (OBS_COMMANDS[i].equals(btn.obsCommand)) {
@@ -150,6 +157,8 @@ public class EditButtonActivity extends AppCompatActivity {
             fTypeKeys.setChecked(true);
             fHaptic.setChecked(true);
             fWidth1.setChecked(true);
+            // Default ad length to 30s for new buttons
+            fTwitchAdLength.setSelection(0);
         }
 
         ((TextView) findViewById(R.id.editor_title)).setText(isNew ? R.string.new_button : R.string.edit_button);
@@ -248,8 +257,12 @@ public class EditButtonActivity extends AppCompatActivity {
         btn.obsVolume        = -1f;
         btn.twitchCommand    = fTwitchTypeAd.isChecked() ? "ad" : (fTwitchTypeClip.isChecked() ? "clip" : "marker");
         btn.twitchDescription = twitchDesc;
+        btn.twitchClipTitle  = fTwitchClipTitle.getText().toString().trim();
+
+        // Always save ad length from spinner; only meaningful when twitchCommand == "ad"
         try {
-            btn.twitchAdLength = Integer.parseInt((String) fTwitchAdLength.getSelectedItem());
+            Object selected = fTwitchAdLength.getSelectedItem();
+            btn.twitchAdLength = (selected != null) ? Integer.parseInt(selected.toString()) : 30;
         } catch (Exception e) {
             btn.twitchAdLength = 30;
         }

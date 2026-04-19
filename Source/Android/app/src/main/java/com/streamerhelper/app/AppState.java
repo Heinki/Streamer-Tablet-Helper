@@ -94,6 +94,8 @@ public class AppState {
         o.put("obsVolume",         b.obsVolume);
         o.put("twitchCommand",     b.twitchCommand);
         o.put("twitchDescription", b.twitchDescription);
+        o.put("twitchAdLength",    b.twitchAdLength);
+        o.put("twitchClipTitle",   b.twitchClipTitle);
         return o;
     }
 
@@ -115,6 +117,8 @@ public class AppState {
         b.obsVolume        = (float) o.optDouble("obsVolume", -1.0);
         b.twitchCommand    = o.optString("twitchCommand",     "marker");
         b.twitchDescription= o.optString("twitchDescription", "");
+        b.twitchAdLength   = o.optInt("twitchAdLength",       30);
+        b.twitchClipTitle  = o.optString("twitchClipTitle",   "");
         return b;
     }
 
