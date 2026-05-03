@@ -415,15 +415,12 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
         labelV.setGravity(Gravity.CENTER);
         inner.addView(labelV);
 
-        // Sub-hint — only show on larger form factors (≥3 columns) to save space on phones
-        if (gridColumns >= 3) {
-            TextView hintV = new TextView(this);
-            hintV.setText(subHint(btn));
-            hintV.setTextColor(0xFF555e7a);
-            hintV.setTextSize(btnHintSize);
-            hintV.setGravity(Gravity.CENTER);
-            inner.addView(hintV);
-        }
+        TextView hintV = new TextView(this);
+        hintV.setText(subHint(btn));
+        hintV.setTextColor(0xFF555e7a);
+        hintV.setTextSize(btnHintSize);
+        hintV.setGravity(Gravity.CENTER);
+        inner.addView(hintV);
 
         // "hold to edit" ghost text
         TextView holdHint = new TextView(this);
@@ -442,15 +439,40 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     }
 
     private String subHint(DeckButton btn) {
-        switch (btn.type) {
+        String type = btn.type != null ? btn.type : "";
+        switch (type) {
             case "obs":    return "OBS: " + (btn.obsCommand != null ? btn.obsCommand : "");
             case "twitch": {
-                String d = btn.twitchDescription != null ? btn.twitchDescription : "";
-                return d.isEmpty() ? "Twitch marker" : "Marker: " + d;
+                return twitchHint(btn);
             }
-            case "sound":  return "🔊 sound";
-            default:       return btn.keys != null ? btn.keys : "";
+            case "sound":  return "Sound alert" + detailSuffix(btn.sound);
+            default:       return btn.keys != null && !btn.keys.isEmpty() ? "Keys: " + btn.keys : "Keyboard shortcut";
         }
+    }
+
+    private String twitchHint(DeckButton btn) {
+        String command = btn.twitchCommand != null ? btn.twitchCommand : "marker";
+        switch (command) {
+            case "ad":
+                int seconds = btn.twitchAdLength > 0 ? btn.twitchAdLength : 30;
+                return "Twitch ad: " + seconds + "s";
+            case "clip": {
+                String title = btn.twitchClipTitle != null ? btn.twitchClipTitle : "";
+                if (title.isEmpty() && btn.twitchDescription != null) title = btn.twitchDescription;
+                return title.isEmpty() ? "Twitch clip" : "Twitch clip: " + title;
+            }
+            default: {
+                String description = btn.twitchDescription != null ? btn.twitchDescription : "";
+                return description.isEmpty() ? "Twitch marker" : "Twitch marker: " + description;
+            }
+        }
+    }
+
+    private String detailSuffix(String value) {
+        if (value == null || value.isEmpty()) return "";
+        int slash = Math.max(value.lastIndexOf('/'), value.lastIndexOf('\\'));
+        String name = slash >= 0 ? value.substring(slash + 1) : value;
+        return name.isEmpty() ? "" : ": " + name;
     }
 
     private View makeAddSlot() {
@@ -530,11 +552,12 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
     private void fireAction(DeckButton btn) {
         ServerClient.Callback cb = (ok, msg) ->
             Toast.makeText(this, ok ? getString(R.string.action_success, btn.label) : getString(R.string.action_fail, msg), Toast.LENGTH_SHORT).show();
-        switch (btn.type) {
+        String type = btn.type != null ? btn.type : "";
+        switch (type) {
             case "keys":  client.sendKeys(btn.keys, cb); break;
             case "sound": client.sendSound(btn.sound, cb); break;
             case "obs":    client.sendObs(btn.obsCommand, btn.obsScene, btn.obsSource, btn.obsVolume, cb); break;
-            case "twitch": client.sendTwitch(btn.twitchCommand, btn.twitchDescription, btn.twitchAdLength, cb); break;
+            case "twitch": client.sendTwitch(btn.twitchCommand, btn.twitchDescription, btn.twitchAdLength, btn.twitchClipTitle, cb); break;
         }
     }
 

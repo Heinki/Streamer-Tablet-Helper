@@ -188,15 +188,20 @@ public class ServerClient {
     }
 
 
-    public void sendTwitch(String command, String description, int adLength, Callback cb) {
+    public void sendTwitch(String command, String description, int adLength, String clipTitle, Callback cb) {
         executor.submit(() -> {
             try {
                 JSONObject body = new JSONObject();
                 body.put("action",  "twitch");
-                body.put("command", command);
-                if (description != null && !description.isEmpty())
+                String twitchCommand = command != null ? command : "marker";
+                body.put("command", twitchCommand);
+                if (twitchCommand.equals("clip")) {
+                    if (clipTitle != null && !clipTitle.isEmpty())
+                        body.put("description", clipTitle);
+                } else if (description != null && !description.isEmpty()) {
                     body.put("description", description);
-                if (command.equals("ad"))
+                }
+                if (twitchCommand.equals("ad"))
                     body.put("length", adLength);
                 postJson(body.toString(), cb);
             } catch (Exception e) {

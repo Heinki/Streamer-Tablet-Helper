@@ -55,7 +55,7 @@ public class AppState {
                 .putString(KEY_IP, serverIp)
                 .putBoolean(KEY_HIDE_IP, hideIp)
                 .putString(KEY_PAGES, arr.toString())
-                .apply();
+                .commit();
         } catch (Exception ignored) {}
     }
 
@@ -115,11 +115,30 @@ public class AppState {
         b.obsScene         = o.optString("obsScene",          "");
         b.obsSource        = o.optString("obsSource",         "");
         b.obsVolume        = (float) o.optDouble("obsVolume", -1.0);
-        b.twitchCommand    = o.optString("twitchCommand",     "marker");
+        b.twitchCommand    = normalizeTwitchCommand(o.optString("twitchCommand",
+            o.optString("twitchType", o.optString("twitchAction", "marker"))));
         b.twitchDescription= o.optString("twitchDescription", "");
-        b.twitchAdLength   = o.optInt("twitchAdLength",       30);
+        b.twitchAdLength   = normalizeAdLength(o.optInt("twitchAdLength", 30));
         b.twitchClipTitle  = o.optString("twitchClipTitle",   "");
+        if ("clip".equals(b.twitchCommand) && b.twitchClipTitle.isEmpty())
+            b.twitchClipTitle = b.twitchDescription;
         return b;
+    }
+
+    private String normalizeTwitchCommand(String command) {
+        if (command == null) return "marker";
+        String c = command.trim().toLowerCase();
+        if ("ad".equals(c) || "commercial".equals(c) || "run_ad".equals(c)) return "ad";
+        if ("clip".equals(c) || "create_clip".equals(c)) return "clip";
+        return "marker";
+    }
+
+    private int normalizeAdLength(int seconds) {
+        int[] allowed = {30, 60, 90, 120, 150, 180};
+        for (int allowedSeconds : allowed) {
+            if (seconds == allowedSeconds) return seconds;
+        }
+        return 30;
     }
 
     public static String uid() {
@@ -180,13 +199,13 @@ public class AppState {
 
         DeckButton clipBtn = new DeckButton(uid(), "✂️", "Clip It", "twitch", "", "", "#00ff99");
         clipBtn.twitchCommand     = "clip";
-        clipBtn.twitchDescription = "Instant clip";
+        clipBtn.twitchClipTitle   = "Instant clip";
         clipBtn.haptic            = true;
         twitch.buttons.add(clipBtn);
 
         DeckButton clipEpic = new DeckButton(uid(), "🎬", "Clip Epic", "twitch", "", "", "#ff6b9d");
         clipEpic.twitchCommand     = "clip";
-        clipEpic.twitchDescription = "Epic moment";
+        clipEpic.twitchClipTitle   = "Epic moment";
         clipEpic.haptic            = true;
         twitch.buttons.add(clipEpic);
 
@@ -202,7 +221,7 @@ public class AppState {
 
         DeckButton clipMoment = new DeckButton(uid(), "📹", "Clip Moment", "twitch", "", "", "#fbbf24");
         clipMoment.twitchCommand     = "clip";
-        clipMoment.twitchDescription = "Clip this moment";
+        clipMoment.twitchClipTitle   = "Clip this moment";
         clipMoment.haptic            = true;
         twitch.buttons.add(clipMoment);
 

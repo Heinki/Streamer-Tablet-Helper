@@ -114,8 +114,10 @@ public class EditButtonActivity extends AppCompatActivity {
             fSound.setText(btn.sound);
             fObsScene.setText(btn.obsScene);
             fObsSource.setText(btn.obsSource);
-            fTwitchDesc.setText(btn.twitchDescription != null ? btn.twitchDescription : "");
-            fTwitchClipTitle.setText(btn.twitchClipTitle != null ? btn.twitchClipTitle : "");
+            String twitchDesc = btn.twitchDescription != null ? btn.twitchDescription : "";
+            String twitchClipTitle = btn.twitchClipTitle != null ? btn.twitchClipTitle : "";
+            fTwitchDesc.setText(twitchDesc);
+            fTwitchClipTitle.setText(!twitchClipTitle.isEmpty() ? twitchClipTitle : twitchDesc);
             selectedColor = btn.color != null ? btn.color : "#00e5ff";
             fConfirmTap.setChecked(btn.confirmTap);
             fHaptic.setChecked(btn.haptic);
@@ -236,9 +238,12 @@ public class EditButtonActivity extends AppCompatActivity {
         else if (fTypeTwitch.isChecked()) type = "twitch";
         else                              type = "keys";
 
-        // Clamp Twitch description to 140 chars (Twitch API limit)
+        // Clamp Twitch marker description to 140 chars (Twitch API limit)
         String twitchDesc = fTwitchDesc.getText().toString().trim();
         if (twitchDesc.length() > 140) twitchDesc = twitchDesc.substring(0, 140);
+
+        String twitchClipTitle = fTwitchClipTitle.getText().toString().trim();
+        if (twitchClipTitle.length() > 60) twitchClipTitle = twitchClipTitle.substring(0, 60);
 
         DeckButton btn = new DeckButton();
         btn.id               = isNew ? AppState.uid() : state.pages.get(pageIdx).buttons.get(btnIdx).id;
@@ -257,7 +262,7 @@ public class EditButtonActivity extends AppCompatActivity {
         btn.obsVolume        = -1f;
         btn.twitchCommand    = fTwitchTypeAd.isChecked() ? "ad" : (fTwitchTypeClip.isChecked() ? "clip" : "marker");
         btn.twitchDescription = twitchDesc;
-        btn.twitchClipTitle  = fTwitchClipTitle.getText().toString().trim();
+        btn.twitchClipTitle  = twitchClipTitle;
 
         // Always save ad length from spinner; only meaningful when twitchCommand == "ad"
         try {
