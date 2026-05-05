@@ -436,6 +436,18 @@ def handle_twitch(data):
             return True, msg
         return False, resp
 
+    elif cmd == "snooze":
+        ok, resp = _twitch_api("POST", "/channels/ads/schedule/snooze", {
+            "broadcaster_id": _twitch_user_id
+        })
+        if ok:
+            msg = resp.get("data", [{}])[0].get("message", "")
+            if not msg:
+                msg = f"Snoozed ads"
+            return True, msg
+        return False, resp
+
+
     elif cmd == "clip":
         title = data.get("description", "")
         duration = float(data.get("duration", 30))
@@ -851,6 +863,7 @@ class App(ctk.CTk):
 2. Enable these SCOPES (check the boxes):
    ✓ channel:manage:broadcast  (Stream markers)
    ✓ channel:edit:commercial    (Run ads)
+   ✓ channel:manage:ads         (Snooze ads)
    ✓ clips:edit                 (Create clips)
 3. Click 'Generate Token' and authorize with Twitch
 4. Copy 'Access Token' and 'Client ID' above
@@ -858,6 +871,7 @@ class App(ctk.CTk):
 SCOPES EXPLAINED:
 • channel:manage:broadcast = Mark moments in your VOD
 • channel:edit:commercial   = Run commercials/ads
+• channel:manage:ads        = Snooze ads
 • clips:edit                = Instant clips with one tap""",
                      font=("Segoe UI", 11), text_color="#ffffff", justify="left"
                      ).pack(anchor="w", padx=2, pady=(0, 6))
