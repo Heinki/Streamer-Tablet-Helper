@@ -143,6 +143,8 @@ public class EditButtonActivity extends AppCompatActivity {
                 }
             } else if ("clip".equals(btn.twitchCommand)) {
                 fTwitchTypeClip.setChecked(true);
+            } else if ("snooze".equals(btn.twitchCommand)) {
+                fTwitchTypeSnooze.setChecked(true);
             } else {
                 fTwitchTypeMarker.setChecked(true);
             }

@@ -461,6 +461,9 @@ public class DeckActivity extends AppCompatActivity implements ServerClient.Conn
                 if (title.isEmpty() && btn.twitchDescription != null) title = btn.twitchDescription;
                 return title.isEmpty() ? "Twitch clip" : "Twitch clip: " + title;
             }
+            case "snooze": {
+                return "Snooze Twitch ads for 5 minutes";
+            }
             default: {
                 String description = btn.twitchDescription != null ? btn.twitchDescription : "";
                 return description.isEmpty() ? "Twitch marker" : "Twitch marker: " + description;
