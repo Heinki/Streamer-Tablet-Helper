@@ -130,6 +130,7 @@ public class AppState {
         String c = command.trim().toLowerCase();
         if ("ad".equals(c) || "commercial".equals(c) || "run_ad".equals(c)) return "ad";
         if ("clip".equals(c) || "create_clip".equals(c)) return "clip";
+        if ("snooze".equals(c) || "snooze_ad".equals(c)) return "snooze";
         return "marker";
     }
 

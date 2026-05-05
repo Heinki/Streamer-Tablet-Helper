@@ -203,6 +203,7 @@ public class ServerClient {
                 }
                 if (twitchCommand.equals("ad"))
                     body.put("length", adLength);
+                // Add Snoozing ads here
                 postJson(body.toString(), cb);
             } catch (Exception e) {
                 deliver(cb, false, e.getMessage());

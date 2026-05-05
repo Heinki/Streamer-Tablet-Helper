@@ -19,7 +19,7 @@ public class EditButtonActivity extends AppCompatActivity {
     private EditText    fKeys, fSound, fObsScene, fObsSource, fTwitchDesc, fTwitchClipTitle;
     private Spinner     fObsCommand, fTwitchAdLength;
     private RadioGroup  fTwitchTypeGroup;
-    private RadioButton fTwitchTypeMarker, fTwitchTypeAd, fTwitchTypeClip;
+    private RadioButton fTwitchTypeMarker, fTwitchTypeAd, fTwitchTypeClip, fTwitchTypeSnooze;
     private LinearLayout twitchMarkerFields, twitchAdFields, twitchClipFields;
     private LinearLayout colorRow;
     private CheckBox    fConfirmTap, fHaptic;
@@ -73,6 +73,7 @@ public class EditButtonActivity extends AppCompatActivity {
         fTwitchTypeGroup = findViewById(R.id.f_twitch_type_group);
         fTwitchTypeMarker = findViewById(R.id.f_twitch_type_marker);
         fTwitchTypeAd     = findViewById(R.id.f_twitch_type_ad);
+        fTwitchTypeSnooze = findViewById(R.id.f_twitch_type_snooze);
         fTwitchTypeClip   = findViewById(R.id.f_twitch_type_clip);
         twitchMarkerFields = findViewById(R.id.twitch_marker_fields);
         twitchAdFields     = findViewById(R.id.twitch_ad_fields);
@@ -260,7 +261,7 @@ public class EditButtonActivity extends AppCompatActivity {
         btn.obsScene         = fObsScene.getText().toString().trim();
         btn.obsSource        = fObsSource.getText().toString().trim();
         btn.obsVolume        = -1f;
-        btn.twitchCommand    = fTwitchTypeAd.isChecked() ? "ad" : (fTwitchTypeClip.isChecked() ? "clip" : "marker");
+        btn.twitchCommand    = fTwitchTypeSnooze.isChecked() ? "snooze" : (fTwitchTypeAd.isChecked() ? "ad" : (fTwitchTypeClip.isChecked() ? "clip" : "marker"));
         btn.twitchDescription = twitchDesc;
         btn.twitchClipTitle  = twitchClipTitle;
 
